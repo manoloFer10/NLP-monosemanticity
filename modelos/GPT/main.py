@@ -2,21 +2,26 @@ import torch
 import torch.nn as nn
 from torch.nn import functional as F
 from gpt import GPTLanguageModel
+import time
+import nltk
+from nltk.tokenize import word_tokenize
+nltk.download('punkt')
+nltk.download('punkt_tab')
+
 
 # wget https://raw.githubusercontent.com/karpathy/char-rnn/master/data/tinyshakespeare/input.txt
 with open("input.txt", "r", encoding="utf-8") as f:
     text = f.read()
 
-# here are all the unique characters that occur in this text
-chars = sorted(list(set(text)))
-vocab_size = len(chars)
-# create a mapping from characters to integers
-stoi = {ch: i for i, ch in enumerate(chars)}
-itos = {i: ch for i, ch in enumerate(chars)}
-encode = lambda s: [stoi[c] for c in s]  # encoder: take a string, output a list of integers
-decode = lambda l: "".join(
-    [itos[i] for i in l]
-)  # decoder: take a list of integers, output a string
+vocab = word_tokenize(text)
+vocab = list(set(vocab))
+token_to_index = {token: index for index, token in enumerate(vocab)}
+
+def encode(text):
+    return [token_to_index[token] for token in word_tokenize(text)]
+
+def decode(tokens):
+    return "".join([vocab[token] for token in tokens])
 
 # Train and test splits
 data = torch.tensor(encode(text), dtype=torch.long)
@@ -50,7 +55,7 @@ def estimate_loss():
     model.train()
     return out
 
-
+vocab_size = len(vocab)
 context_length = 10  # Context length
 embedding_dim = 512
 num_of_attention_heads = 1
@@ -84,8 +89,6 @@ print(sum(p.numel() for p in m.parameters()) / 1e6, "M parameters")
 
 # create a PyTorch optimizer
 optimizer = torch.optim.AdamW(model.parameters(), lr=learning_rate)
-
-import time
 
 a = time.time()
 for iter in range(max_iters):
