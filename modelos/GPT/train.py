@@ -6,6 +6,7 @@ from gpt import GPTLanguageModel
 from text_loader import TextLoader
 
 from transformers import GPT2Tokenizer
+from tokenizers import Tokenizer
 import mlflow
 
 # -------------------
@@ -13,13 +14,13 @@ import mlflow
 with open("data/input.txt", "r", encoding="utf-8") as f:
     text = f.read()
 
-tokenizer = GPT2Tokenizer.from_pretrained("gpt2")
-
-vocab = tokenizer.encode(text)
-vocab = list(set(vocab))
-vocab_size = len(vocab)
 # -------------------
-
+tokenizer = GPT2Tokenizer.from_pretrained("gpt2")
+vocab_size = tokenizer.vocab_size
+encoded_corpus = tokenizer.encode(text)
+# tokenizer = Tokenizer.from_file("custom_tokenizer.json")
+# vocab_size = tokenizer.get_vocab_size()
+# encoded_corpus = tokenizer.encode(text).ids
 context_length = 20  # Context length
 embedding_dim = 128
 num_of_attention_heads = 8
@@ -44,7 +45,7 @@ model = GPTLanguageModel(
 m = model.to(device)
 optimizer = torch.optim.AdamW(model.parameters(), lr=learning_rate)
 
-data = torch.tensor(tokenizer.encode(text), dtype=torch.long)
+data = torch.tensor(encoded_corpus, dtype=torch.long)
 n = int(0.9 * len(data))  # first 90% will be train, rest val
 train_data_loader = TextLoader(data[:n], context_length, batch_size, device)
 eval_data_loader = TextLoader(data[n:], context_length, batch_size, device)
@@ -76,7 +77,8 @@ def train(model, optimizer):
     start_time = time.time()
 
     for batch in range(num_batches):
-        if batch // log_epoch_interval == 0:
+        if batch % log_epoch_interval == 0:
+            print(log_epoch_interval)
             losses = estimate_loss()
             interval = time.time() - start_time
             print(
@@ -125,4 +127,5 @@ with mlflow.start_run() as run:
         train(model, optimizer)
 
     mlflow.pytorch.log_model(model, "transformer")
+
 # %%
