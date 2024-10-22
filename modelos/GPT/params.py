@@ -6,11 +6,11 @@ vocab_size = tokenizer.vocab_size
 
 context_length = 20
 embedding_dim = 128
-num_of_attention_heads = 2
+num_of_attention_heads = 8
 num_of_blocks = 1
 
-batch_size = 32
-learning_rate = 0.01
+batch_size = 64
+learning_rate = 0.0001
 dropout = 0.1
 
 eval_interval = 20
