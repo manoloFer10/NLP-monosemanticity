@@ -114,7 +114,11 @@ class GPTLanguageModel(nn.Module):
             torch.nn.init.normal_(module.weight, mean=0.0, std=0.02)
 
     def forward(self, idx, targets=None):
-        B, T = idx.shape
+        # B is for batch size, 
+        # T is the length of the sequence
+        # C is the embedding dimension
+
+        B, T = idx.shape 
 
         # idx and targets are both (B,T) tensor of integers
         tok_emb = self.token_embedding_table(idx) # (B,T,C)
@@ -150,3 +154,12 @@ class GPTLanguageModel(nn.Module):
             # append sampled index to the running sequence
             idx = torch.cat((idx, idx_next), dim=1) # (B, T+1)
         return idx
+    
+    def embed(self, idx):
+        _, T = idx.shape
+        tok_emb = self.token_embedding_table(idx)
+        pos_emb = self.position_embedding_table(torch.arange(T, device=self.device))
+        x = tok_emb + pos_emb
+        x = self.blocks(x)
+
+        return x

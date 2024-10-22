@@ -27,7 +27,6 @@ num_of_blocks = 1
 batch_size = 512  # Independent sequences we process in parallel
 learning_rate = 0.01
 dropout = 0.1
-eval_interval = 20
 epochs = 3
 device = (
     "cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu"
@@ -49,8 +48,9 @@ data = torch.tensor(tokenizer.encode(text), dtype=torch.long)
 n = int(0.9 * len(data))  # first 90% will be train, rest val
 train_data_loader = TextLoader(data[:n], context_length, batch_size, device)
 eval_data_loader = TextLoader(data[n:], context_length, batch_size, device)
+log_epoch_proportion = 0.2 # Log metrics every 20% of the dataset for each epoch
 num_batches = len(train_data_loader)
-
+log_epoch_interval = round(num_batches * log_epoch_proportion)
 
 @torch.no_grad()
 def estimate_loss():
@@ -59,7 +59,7 @@ def estimate_loss():
 
     for split, data_loader in [("train", train_data_loader), ("eval", eval_data_loader)]:
         split_losses = []
-        for _ in range(eval_interval):
+        for _ in range(log_epoch_interval):
             xb, yb = data_loader.get_batch()
             logits, loss = model(xb, yb)
             split_losses.append(loss.item())
@@ -74,9 +74,9 @@ def train(model, optimizer):
     train_data_loader.reset()
     eval_data_loader.reset()
     start_time = time.time()
-    for batch in range(num_batches):
 
-        if 100 * (batch // num_batches) % eval_interval == 0:
+    for batch in range(num_batches):
+        if batch // log_epoch_interval == 0:
             losses = estimate_loss()
             interval = time.time() - start_time
             print(
@@ -87,17 +87,17 @@ def train(model, optimizer):
             mlflow.log_metric(
                 "cross_entropy_loss_train",
                 f"{losses['train']:.4f}",
-                step=100 * (batch // num_batches),
+                step=len(train_data_loader) * epochs + batch
             )
             mlflow.log_metric(
                 "cross_entropy_loss_eval",
                 f"{losses['eval']:.4f}",
-                step=100 * (batch // num_batches),
+                step=len(train_data_loader) * epochs + batch,
             )
-            mlflow.log_metric("interval_time", f"{interval:.4f}", step=100 * (batch // num_batches))
+            mlflow.log_metric("interval_time", f"{interval:.4f}", step=len(train_data_loader) * epochs + batch)
 
         xb, yb = train_data_loader.get_batch()
-        logits, loss = model(xb, yb)
+        _, loss = model(xb, yb)
         optimizer.zero_grad(set_to_none=True)
         loss.backward()
         optimizer.step()
@@ -125,3 +125,4 @@ with mlflow.start_run() as run:
         train(model, optimizer)
 
     mlflow.pytorch.log_model(model, "transformer")
+# %%
