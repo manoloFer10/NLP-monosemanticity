@@ -9,7 +9,7 @@ from utils import get_tokenizer
 with open("data/input.txt", "r", encoding="utf-8") as f:
     text = f.read()
 
-tokenizer = get_tokenizer("distilbert")
+tokenizer = get_tokenizer("gpt2")
 
 vocab_size = tokenizer.vocab_size
 # ----------------------------
