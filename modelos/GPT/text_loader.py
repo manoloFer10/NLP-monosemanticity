@@ -4,7 +4,7 @@ class TextLoader:
         self.context_size = context_size
         self.batch_size = batch_size
         self.pointer = 0
-        self.num_batches = len(data) // (context_size * batch_size)
+        self.num_batches = len(data) // (context_size * batch_size) + 1
         
         self.device = device
 
