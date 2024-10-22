@@ -2,28 +2,24 @@ import time
 import torch
 from gpt import GPTLanguageModel
 from text_loader import TextLoader
-
-from transformers import GPT2Tokenizer
+from utils import get_tokenizer
 
 #----------------------------
 # wget https://raw.githubusercontent.com/karpathy/char-rnn/master/data/tinyshakespeare/input.txt
 with open("data/input.txt", "r", encoding="utf-8") as f:
     text = f.read()
 
-tokenizer = GPT2Tokenizer.from_pretrained('gpt2')
+tokenizer = get_tokenizer("distilbert")
 
-vocab = tokenizer.encode(text)
-vocab = list(set(vocab))
-
-vocab_size = len(vocab)
+vocab_size = tokenizer.vocab_size
 # ----------------------------
 
 context_length = 20  # Context length
 embedding_dim = 128
-num_of_attention_heads = 8
-num_of_blocks = 2
+num_of_attention_heads = 2
+num_of_blocks = 1
 
-batch_size = 512  # Independent sequences we process in parallel
+batch_size = 32  # Independent sequences we process in parallel
 learning_rate = 0.01
 dropout = 0.1
 
