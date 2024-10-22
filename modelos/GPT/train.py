@@ -16,6 +16,7 @@ from params import (
     epochs,
     device,
 )
+from utils import estimate_loss
 
 # wget https://raw.githubusercontent.com/karpathy/char-rnn/master/data/tinyshakespeare/input.txt
 with open("data/input.txt", "r", encoding="utf-8") as f:
@@ -27,27 +28,7 @@ train_data_loader = TextLoader(data[:n], context_length, batch_size, device)
 val_data_loader = TextLoader(data[n:], context_length, batch_size, device)
 
 num_batches = len(train_data_loader)
-
-
-@torch.no_grad()  # Disable gradient calculation for this function
-def estimate_loss():
-    model.eval()  # Set the model to evaluation mode (disables dropout, etc.)
-    losses = {}
-
-    # Loop over both the training and validation datasets
-    for split, data_loader in [("train", train_data_loader), ("val", val_data_loader)]:
-        split_losses = []
-        for _ in range(eval_interval):  # Run over a few batches for an estimate
-            xb, yb = data_loader.get_batch()
-            logits, loss = model(xb, yb)
-            split_losses.append(loss.item())  # Convert tensor loss to a float
-
-        # Compute average loss for this split
-        losses[split] = sum(split_losses) / len(split_losses)
-
-    model.train()  # Set the model back to training mode
-    return losses
-
+eval_every_n_batches = num_batches // 5
 
 model = GPTLanguageModel(
     vocab_size=vocab_size,
@@ -60,10 +41,7 @@ model = GPTLanguageModel(
 )
 m = model.to(device)
 optimizer = torch.optim.AdamW(model.parameters(), lr=learning_rate)
-
-# print the number of parameters in the model
 print(sum(p.numel() for p in m.parameters()) / 1e6, "M parameters")
-
 
 for epoch in range(epochs):
     
@@ -73,19 +51,16 @@ for epoch in range(epochs):
     val_data_loader.reset()
     for batch in range(num_batches):
 
-        # every once in a while evaluate the loss on train and val sets
-        if 100 * (batch // num_batches) % eval_interval == 0:
-            losses = estimate_loss()
+        if batch % eval_every_n_batches == 0:
+            losses = estimate_loss(model, train_data_loader, val_data_loader, eval_interval)
             interval = time.time() - start_time
             print(
                 f"step {batch}/{num_batches}: train loss {losses['train']:.4f}, val loss {losses['val']:.4f}, interval time ({device}): {interval}"
             )
             start_time = time.time()
 
-        # sample a batch of data
         xb, yb = train_data_loader.get_batch()
 
-        # evaluate the loss
         logits, loss = model(xb, yb)
         optimizer.zero_grad(set_to_none=True)
         loss.backward()
