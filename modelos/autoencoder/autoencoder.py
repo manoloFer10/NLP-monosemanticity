@@ -6,33 +6,35 @@ import numpy as np
 
 
 class Autoencoder(nn.Module):
-    '''
-        Vi que la cabra Jake suma una funcion para normalizar los pesos del decoder. No termino de entender por qué lo hace así
-        que no lo sumé.
-    '''
     def __init__(self, dim_activaciones: int, dim_rala: int, dataset_geometric_median):
         super().__init__()
 
-        self.encoder = nn.Sequential(
-            nn.Linear(dim_activaciones, dim_rala),
-            nn.ReLU()
-        )
-        self.decoder = nn.Sequential(
-            nn.Linear(dim_rala, dim_activaciones),
-            nn.ReLU()
-        )
+        self.encoder = nn.Linear(dim_activaciones, dim_rala)
+
+        self.decoder = nn.Linear(dim_rala, dim_activaciones)
+
+        self.relu = nn.ReLU()
 
         # Este es el pre encoder bias que muestran en las cuentas del autoencoder antes de entrar en el encoder.
         # Entiendo que es un bias distinto al de la capa encoder porque ese va después de aplicar la matriz de pesos.
         # Inicializamos como la mediana geométrica del dataset (lo dice en el paper de anthropic).
+        # OJETE: la mediana geometrica debería ser sobre las activaciones de las neuronas. O sea, habría que precomputarlas
+        # Muy costoso. Ver qué hacemos con esto.
         self.pre_encoder_bias = nn.Parameter(torch.Tensor(dataset_geometric_median))
 
     def encode(self, x):
         x = x - self.pre_encoder_bias
-        return self.encoder(x)
+        x = self.encoder(x)
+        x = self.relu(x)
+
+        return x
 
     def decode(self, x):
-        return self.decoder(x) + self.pre_encoder_bias
+        x = self.decoder(x)
+        x = self.relu(x)
+        x = self.pre_encoder_bias + x
+
+        return x
 
     def forward(self, x):
 
