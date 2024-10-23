@@ -3,6 +3,7 @@ import torch
 from gpt import GPTLanguageModel
 from text_loader import TextLoader
 from params import (
+    num_subsets,
     tokenizer,
     vocab_size,
     context_length,
@@ -16,10 +17,11 @@ from params import (
     epochs,
     device,
 )
-from utils import estimate_loss
+from utils import estimate_loss, save_wikipedia
 
-# wget https://raw.githubusercontent.com/karpathy/char-rnn/master/data/tinyshakespeare/input.txt
-with open("data/input.txt", "r", encoding="utf-8") as f:
+save_wikipedia(num_subsets=num_subsets)
+
+with open("data/wikitext-103-v1/train-0.txt", "r", encoding="utf-8") as f:
     text = f.read()
 
 data = torch.tensor(tokenizer.encode(text), dtype=torch.long)
@@ -67,9 +69,3 @@ for epoch in range(epochs):
         optimizer.step()
 
 torch.save(model, "checkpoints/model.pth")
-
-# generate from the model
-model.eval()
-idx = torch.tensor(tokenizer.encode("MENENIUS"), dtype=torch.long).unsqueeze(0).to(device)
-out = model.generate(idx, 100)
-print(tokenizer.decode(out.squeeze().tolist()))

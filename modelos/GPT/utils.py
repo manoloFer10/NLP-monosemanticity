@@ -1,8 +1,10 @@
+import os
 import torch
 from transformers import GPT2Tokenizer
 from transformers import MBartTokenizer
 from transformers import XLMRobertaTokenizer
 from transformers import DistilBertTokenizer
+from datasets import load_dataset
 
 
 def get_tokenizer(tokenizer_name):
@@ -33,3 +35,19 @@ def estimate_loss(model, train_data_loader, val_data_loader, eval_interval=20):
 
     model.train()
     return losses
+
+
+def save_wikipedia(num_subsets = 50):
+    dataset = load_dataset("wikitext", "wikitext-103-v1")
+
+    train_data = dataset['train']
+    # val_data = dataset['validation']
+    # test_data = dataset['test']
+    
+    subsets = [train_data.shard(num_subsets, i) for i in range(num_subsets)]
+
+    for i, subset in enumerate(subsets):
+        if not os.path.exists(f"data/wikitext-103-v1/train-{i}.txt"):
+            os.makedirs(f"data/wikitext-103-v1", exist_ok=True)
+        with open(f"data/wikitext-103-v1/train-{i}.txt", "w") as f:
+            f.write("".join(subset['text']))
