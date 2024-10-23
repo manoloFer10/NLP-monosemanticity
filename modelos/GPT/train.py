@@ -103,9 +103,6 @@ with mlflow.start_run() as run:
         "dropout": dropout,
     }
     mlflow.log_params(params)
-
-    with open("transformer_summary.txt", "w") as f:
-        f.write(str(summary(model)))
     mlflow.log_artifact("transformer_summary.txt")
 
     for t in range(epochs):
