@@ -3,3 +3,6 @@ __pycache__/
 checkpoints/
 
 data/
+mlruns/
+mlartifacts/
+credentials.json
