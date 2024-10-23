@@ -3,7 +3,8 @@ import torch
 from torchinfo import summary
 from text_loader import TextLoader
 from params import (
-    num_subsets,
+    subsets_max_size,
+    num_training_subsets,
     tokenizer,
     vocab_size,
     context_length,
@@ -24,10 +25,6 @@ import os
 
 os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "../../credentials.json"
 
-save_wikipedia(num_subsets=num_subsets)
-
-with open("data/wikitext-103-v1/train-0.txt", "r", encoding="utf-8") as f:
-    text = f.read()
 
 model = GPTLanguageModel(
     vocab_size=vocab_size,
@@ -41,20 +38,18 @@ model = GPTLanguageModel(
 m = model.to(device)
 optimizer = torch.optim.AdamW(model.parameters(), lr=learning_rate)
 
-data = torch.tensor(tokenizer.encode(text), dtype=torch.long)
-n = int(0.9 * len(data))  # first 90% will be train, rest val
-train_data_loader = TextLoader(data[:n], context_length, batch_size, device)
-eval_data_loader = TextLoader(data[n:], context_length, batch_size, device)
-log_epoch_proportion = 0.2  # Log metrics every 20% of the dataset for each epoch
-num_batches = len(train_data_loader)
-eval_every_n_batches = num_batches // 5
-
-
-def train(model, optimizer):
-    train_data_loader.reset()
-    eval_data_loader.reset()
+def train_subset(model, optimizer, subset):
+    
+    data = torch.tensor(tokenizer.encode(subset), dtype=torch.long)
+    train_size = int(0.9 * len(data))
+    
+    train_data_loader = TextLoader(data[:train_size], context_length, batch_size, device)
+    eval_data_loader = TextLoader(data[train_size:], context_length, batch_size, device)
+    
+    num_batches = len(train_data_loader)
+    eval_every_n_batches = num_batches // 5
+    
     start_time = time.time()
-
     for batch in range(num_batches):
         if batch % eval_every_n_batches == 0:
             losses = estimate_loss(model, train_data_loader, eval_data_loader, eval_interval)
@@ -107,11 +102,23 @@ with mlflow.start_run() as run:
     with open("transformer_summary.txt", "w") as f:
         f.write(str(summary(model)))
     mlflow.log_artifact("transformer_summary.txt")
+    os.remove("transformer_summary.txt")
 
+    save_wikipedia(subsets_max_size=subsets_max_size, num_training_subsets=num_training_subsets)
     for t in range(epochs):
-        print(f"Epoch {t+1}\n-------------------------------")
-        train(model, optimizer)
+        print(f"Epoch {t+1}")
+        print("____________________________________________________")
+        for i in range(num_training_subsets):
 
+            print(f"Training subset {i+1}")
+            print("____________________________________")
+
+            with open(f"data/wikitext-103-v1/train-{i}.txt", "r", encoding="utf-8") as f:
+                subset = f.read()
+                train_subset(model, optimizer, subset)
+
+
+    torch.save(model, "checkpoints/model.pth")
     mlflow.pytorch.log_model(model, "transformer")
 
 mlflow.end_run()

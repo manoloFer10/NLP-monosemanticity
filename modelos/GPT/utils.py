@@ -1,4 +1,5 @@
 import os
+import sys
 import torch
 from transformers import GPT2Tokenizer
 from transformers import MBartTokenizer
@@ -36,17 +37,46 @@ def estimate_loss(model, train_data_loader, val_data_loader, eval_interval=20):
     model.train()
     return losses
 
-def save_wikipedia(num_subsets = 50):
+
+def save_wikipedia(subsets_max_size, num_training_subsets=None):
+
+    subsets_max_size = subsets_max_size * 1024 * 1024  # Convert MB to bytes
+
     dataset = load_dataset("wikitext", "wikitext-103-v1")
 
-    train_data = dataset['train']
+    train_data = dataset["train"]
     # val_data = dataset['validation']
     # test_data = dataset['test']
-    
-    subsets = [train_data.shard(num_subsets, i) for i in range(num_subsets)]
 
-    for i, subset in enumerate(subsets):
-        if not os.path.exists(f"data/wikitext-103-v1/train-{i}.txt"):
-            os.makedirs(f"data/wikitext-103-v1", exist_ok=True)
-        with open(f"data/wikitext-103-v1/train-{i}.txt", "w") as f:
-            f.write("".join(subset['text']))
+    if os.path.exists(f"data/wikitext-103-v1"):
+        os.system("rm -rf data/wikitext-103-v1")
+
+        os.makedirs("data/wikitext-103-v1", exist_ok=True)
+
+    i = 0
+    current_subset = []
+    current_subset_size = 0
+
+    for d in train_data:
+        text = d["text"]
+        text_size = len(text.encode('utf-8'))
+
+        if current_subset_size + text_size < subsets_max_size:
+            current_subset.append(text)
+            current_subset_size += text_size
+        else:
+            with open(f"data/wikitext-103-v1/train-{i}.txt", "w") as f:
+                f.write("".join(current_subset))
+
+
+            i += 1
+            current_subset = [text]
+            current_subset_size = text_size
+
+            if num_training_subsets and (i == num_training_subsets):
+                break
+
+    if current_subset:
+        if num_training_subsets and i < (num_training_subsets - 1):
+            with open(f"data/wikitext-103-v1/train-{i}.txt", "w") as f:
+                f.write("".join(current_subset))
