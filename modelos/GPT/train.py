@@ -54,24 +54,6 @@ log_epoch_proportion = 0.2 # Log metrics every 20% of the dataset for each epoch
 num_batches = len(train_data_loader)
 log_epoch_interval = round(num_batches * log_epoch_proportion)
 
-@torch.no_grad()
-def estimate_loss():
-    model.eval()
-    losses = {}
-
-    for split, data_loader in [("train", train_data_loader), ("eval", eval_data_loader)]:
-        split_losses = []
-        for _ in range(log_epoch_interval):
-            xb, yb = data_loader.get_batch()
-            logits, loss = model(xb, yb)
-            split_losses.append(loss.item())
-
-        losses[split] = sum(split_losses) / len(split_losses)
-
-    model.train()
-    return losses
-
-
 def train(model, optimizer):
     train_data_loader.reset()
     eval_data_loader.reset()
