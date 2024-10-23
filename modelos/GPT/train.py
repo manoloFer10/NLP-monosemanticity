@@ -1,68 +1,36 @@
+# %%
 import time
 import torch
-from gpt import GPTLanguageModel
+from torchinfo import summary
 from text_loader import TextLoader
+from params import (
+    tokenizer,
+    vocab_size,
+    context_length,
+    embedding_dim,
+    num_of_attention_heads,
+    num_of_blocks,
+    batch_size,
+    learning_rate,
+    dropout,
+    epochs,
+    device,
+)
+from utils import estimate_loss
 
 from transformers import GPT2Tokenizer
+from gpt import GPTLanguageModel
+from tokenizers import Tokenizer
+import mlflow
 
-#----------------------------
+# -------------------
 # wget https://raw.githubusercontent.com/karpathy/char-rnn/master/data/tinyshakespeare/input.txt
 with open("data/input.txt", "r", encoding="utf-8") as f:
     text = f.read()
 
-tokenizer = GPT2Tokenizer.from_pretrained('gpt2')
-
-vocab = tokenizer.encode(text)
-vocab = list(set(vocab))
-
-vocab_size = len(vocab)
-# ----------------------------
-
-context_length = 20  # Context length
-embedding_dim = 128
-num_of_attention_heads = 8
-num_of_blocks = 2
-
-batch_size = 512  # Independent sequences we process in parallel
-learning_rate = 0.01
-dropout = 0.1
-
-eval_interval = 20
-epochs = 3
-
-device = (
-    "cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu"
-)
-
-
-# Train and test splits
-data = torch.tensor(tokenizer.encode(text), dtype=torch.long)
-n = int(0.9 * len(data))  # first 90% will be train, rest val
-train_data_loader = TextLoader(data[:n], context_length, batch_size, device)
-val_data_loader = TextLoader(data[n:], context_length, batch_size, device)
-
-num_batches = len(train_data_loader)
-
-
-@torch.no_grad()  # Disable gradient calculation for this function
-def estimate_loss():
-    model.eval()  # Set the model to evaluation mode (disables dropout, etc.)
-    losses = {}
-
-    # Loop over both the training and validation datasets
-    for split, data_loader in [("train", train_data_loader), ("val", val_data_loader)]:
-        split_losses = []
-        for _ in range(eval_interval):  # Run over a few batches for an estimate
-            xb, yb = data_loader.get_batch()
-            logits, loss = model(xb, yb)
-            split_losses.append(loss.item())  # Convert tensor loss to a float
-
-        # Compute average loss for this split
-        losses[split] = sum(split_losses) / len(split_losses)
-
-    model.train()  # Set the model back to training mode
-    return losses
-
+# -------------------
+encoded_corpus = tokenizer.encode(text)
+# encoded_corpus = tokenizer.encode(text).ids
 
 model = GPTLanguageModel(
     vocab_size=vocab_size,
@@ -76,45 +44,94 @@ model = GPTLanguageModel(
 m = model.to(device)
 optimizer = torch.optim.AdamW(model.parameters(), lr=learning_rate)
 
-# print the number of parameters in the model
-print(sum(p.numel() for p in m.parameters()) / 1e6, "M parameters")
+data = torch.tensor(encoded_corpus, dtype=torch.long)
+n = int(0.9 * len(data))  # first 90% will be train, rest val
+train_data_loader = TextLoader(data[:n], context_length, batch_size, device)
+eval_data_loader = TextLoader(data[n:], context_length, batch_size, device)
+log_epoch_proportion = 0.2 # Log metrics every 20% of the dataset for each epoch
+num_batches = len(train_data_loader)
+log_epoch_interval = round(num_batches * log_epoch_proportion)
 
-start_time = time.time()
+@torch.no_grad()
+def estimate_loss():
+    model.eval()
+    losses = {}
 
-for epoch in range(epochs):
-    print(f"epoch {epoch+1}")
-    
+    for split, data_loader in [("train", train_data_loader), ("eval", eval_data_loader)]:
+        split_losses = []
+        for _ in range(log_epoch_interval):
+            xb, yb = data_loader.get_batch()
+            logits, loss = model(xb, yb)
+            split_losses.append(loss.item())
+
+        losses[split] = sum(split_losses) / len(split_losses)
+
+    model.train()
+    return losses
+
+
+def train(model, optimizer):
     train_data_loader.reset()
-    val_data_loader.reset()
-    
-    for batch in range(num_batches):
+    eval_data_loader.reset()
+    start_time = time.time()
 
-        # every once in a while evaluate the loss on train and val sets
-        if 100 * (batch // num_batches) % eval_interval == 0:
+    for batch in range(num_batches):
+        if batch % log_epoch_interval == 0:
             losses = estimate_loss()
             interval = time.time() - start_time
             print(
-                f"step {batch}/{num_batches}: train loss {losses['train']:.4f}, val loss {losses['val']:.4f}, interval time ({device}): {interval}"
+                f"step {batch}/{num_batches}: train loss {losses['train']:.4f}, eval loss {losses['eval']:.4f}, interval time ({device}): {interval}"
             )
             start_time = time.time()
 
-        # sample a batch of data
-        xb, yb = train_data_loader.get_batch()
+            mlflow.log_metric(
+                "cross_entropy_loss_train",
+                f"{losses['train']:.4f}",
+                step=len(train_data_loader) * epochs + batch
+            )
+            mlflow.log_metric(
+                "cross_entropy_loss_eval",
+                f"{losses['eval']:.4f}",
+                step=len(train_data_loader) * epochs + batch,
+            )
+            mlflow.log_metric("interval_time", f"{interval:.4f}", step=len(train_data_loader) * epochs + batch)
 
-        # evaluate the loss
-        logits, loss = model(xb, yb)
+        xb, yb = train_data_loader.get_batch()
+        _, loss = model(xb, yb)
         optimizer.zero_grad(set_to_none=True)
         loss.backward()
         optimizer.step()
 
 
-# save the model
-# TODO: Estaria bueno sofiticar el guardado del modelo
-# para poder tener muchas versiones diferentes
-torch.save(model, "checkpoints/model.pth")
+print(sum(p.numel() for p in m.parameters()) / 1e6, "M parameters")
 
-# generate from the model
-model.eval()
-idx = torch.tensor(tokenizer.encode("MENENIUS"), dtype=torch.long).unsqueeze(0).to(device)
-out = model.generate(idx, 100)
-print(tokenizer.decode(out.squeeze().tolist()))
+#mlflow.set_tracking_uri(uri="http://127.0.0.1:8080")
+#mlflow.set_experiment("Training Transformer")
+
+with mlflow.start_run() as run:
+    params = {
+        "epochs": epochs,
+        "learning_rate": learning_rate,
+        "batch_size": batch_size,
+        "optimizer": "AdamW",
+        "context_length": context_length,
+        "embedding_dim": embedding_dim,
+        "num_of_attention_heads": num_of_attention_heads,
+        "num_of_blocks": num_of_blocks,
+        "vocab_size": vocab_size,
+        "dropout": dropout
+    }
+    mlflow.log_params(params)
+
+    with open("transformer_summary.txt", "w") as f:
+        f.write(str(summary(model)))
+    mlflow.log_artifact("transformer_summary.txt")
+
+    for t in range(epochs):
+        print(f"Epoch {t+1}\n-------------------------------")
+        train(model, optimizer)
+
+    mlflow.pytorch.log_model(model, "transformer")
+
+mlflow.end_run()
+# %%
