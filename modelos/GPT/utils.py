@@ -51,7 +51,7 @@ def save_wikipedia(subsets_max_size, num_training_subsets=None):
     if os.path.exists(f"data/wikitext-103-v1"):
         os.system("rm -rf data/wikitext-103-v1")
 
-        os.makedirs("data/wikitext-103-v1", exist_ok=True)
+    os.makedirs("data/wikitext-103-v1", exist_ok=True)
 
     i = 0
     current_subset = []
