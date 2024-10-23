@@ -22,6 +22,8 @@ from transformers import GPT2Tokenizer
 from gpt import GPTLanguageModel
 from tokenizers import Tokenizer
 import mlflow
+import os 
+os.environ['GOOGLE_APPLICATION_CREDENTIALS']='../../credentials.json'
 
 # -------------------
 # wget https://raw.githubusercontent.com/karpathy/char-rnn/master/data/tinyshakespeare/input.txt
@@ -105,8 +107,8 @@ def train(model, optimizer):
 
 print(sum(p.numel() for p in m.parameters()) / 1e6, "M parameters")
 
-#mlflow.set_tracking_uri(uri="http://127.0.0.1:8080")
-#mlflow.set_experiment("Training Transformer")
+mlflow.set_tracking_uri(uri="http://34.176.94.221:5000")
+mlflow.set_experiment("Training Transformer")
 
 with mlflow.start_run() as run:
     params = {
