@@ -1,11 +1,11 @@
 import torch
 from utils import get_tokenizer
 
+dataset="wikitext-103-v1"
+num_subsets=50
 
 tokenizer = get_tokenizer("gpt2")
 vocab_size = tokenizer.vocab_size
-# tokenizer = Tokenizer.from_file("custom_tokenizer.json")
-# vocab_size = tokenizer.get_vocab_size()
 
 context_length = 20
 embedding_dim = 128
