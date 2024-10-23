@@ -24,7 +24,7 @@ def get_tokenizer(tokenizer_name):
 def estimate_loss(model, train_data_loader, val_data_loader, eval_interval=20):
     model.eval()
     losses = {}
-    for split, data_loader in [("train", train_data_loader), ("val", val_data_loader)]:
+    for split, data_loader in [("train", train_data_loader), ("eval", val_data_loader)]:
         split_losses = []
         for _ in range(eval_interval):
             xb, yb = data_loader.get_batch()
