@@ -86,6 +86,8 @@ mlflow.set_experiment("Training Transformer")
 
 with mlflow.start_run() as run:
     params = {
+        "subsets_max_size": subsets_max_size,
+        "num_training_subsets": num_training_subsets,
         "epochs": epochs,
         "learning_rate": learning_rate,
         "batch_size": batch_size,
@@ -105,6 +107,9 @@ with mlflow.start_run() as run:
     os.remove("transformer_summary.txt")
 
     save_wikipedia(subsets_max_size=subsets_max_size, num_training_subsets=num_training_subsets)
+    print("Training model")
+    print("Parameters:")
+    print(params)
     for t in range(epochs):
         print(f"Epoch {t+1}")
         print("____________________________________________________")
@@ -117,6 +122,8 @@ with mlflow.start_run() as run:
                 subset = f.read()
                 train_subset(model, optimizer, subset)
 
+    if not os.path.exists("checkpoints"):
+        os.makedirs("checkpoints", exist_ok=True)
 
     torch.save(model, "checkpoints/model.pth")
     mlflow.pytorch.log_model(model, "transformer")
