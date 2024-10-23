@@ -2,10 +2,24 @@
 import time
 import torch
 from torchinfo import summary
-from gpt import GPTLanguageModel
 from text_loader import TextLoader
+from params import (
+    tokenizer,
+    vocab_size,
+    context_length,
+    embedding_dim,
+    num_of_attention_heads,
+    num_of_blocks,
+    batch_size,
+    learning_rate,
+    dropout,
+    epochs,
+    device,
+)
+from utils import estimate_loss
 
 from transformers import GPT2Tokenizer
+from gpt import GPTLanguageModel
 from tokenizers import Tokenizer
 import mlflow
 
@@ -15,23 +29,8 @@ with open("data/input.txt", "r", encoding="utf-8") as f:
     text = f.read()
 
 # -------------------
-tokenizer = GPT2Tokenizer.from_pretrained("gpt2")
-vocab_size = tokenizer.vocab_size
 encoded_corpus = tokenizer.encode(text)
-# tokenizer = Tokenizer.from_file("custom_tokenizer.json")
-# vocab_size = tokenizer.get_vocab_size()
 # encoded_corpus = tokenizer.encode(text).ids
-context_length = 20  # Context length
-embedding_dim = 128
-num_of_attention_heads = 8
-num_of_blocks = 1
-batch_size = 512  # Independent sequences we process in parallel
-learning_rate = 0.01
-dropout = 0.1
-epochs = 3
-device = (
-    "cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu"
-)
 
 model = GPTLanguageModel(
     vocab_size=vocab_size,
@@ -78,7 +77,6 @@ def train(model, optimizer):
 
     for batch in range(num_batches):
         if batch % log_epoch_interval == 0:
-            print(log_epoch_interval)
             losses = estimate_loss()
             interval = time.time() - start_time
             print(
@@ -107,6 +105,9 @@ def train(model, optimizer):
 
 print(sum(p.numel() for p in m.parameters()) / 1e6, "M parameters")
 
+#mlflow.set_tracking_uri(uri="http://127.0.0.1:8080")
+#mlflow.set_experiment("Training Transformer")
+
 with mlflow.start_run() as run:
     params = {
         "epochs": epochs,
@@ -115,6 +116,10 @@ with mlflow.start_run() as run:
         "optimizer": "AdamW",
         "context_length": context_length,
         "embedding_dim": embedding_dim,
+        "num_of_attention_heads": num_of_attention_heads,
+        "num_of_blocks": num_of_blocks,
+        "vocab_size": vocab_size,
+        "dropout": dropout
     }
     mlflow.log_params(params)
 
@@ -128,4 +133,5 @@ with mlflow.start_run() as run:
 
     mlflow.pytorch.log_model(model, "transformer")
 
+mlflow.end_run()
 # %%

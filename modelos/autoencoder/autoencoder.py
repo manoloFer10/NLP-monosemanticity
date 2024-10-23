@@ -3,7 +3,8 @@ import torch.nn as nn
 from torch.utils.data import DataLoader, Dataset
 import matplotlib.pyplot as plt
 import numpy as np
-
+import mlflow
+from torchinfo import summary
 
 class Autoencoder(nn.Module):
     def __init__(self, dim_activaciones: int, dim_rala: int, dataset_geometric_median):
@@ -48,9 +49,9 @@ class Autoencoder(nn.Module):
             self.decoder.weight.data = nn.functional.normalize(self.decoder.weight.data, p=2, dim=1)
 
 
-class lossAutoencoder(nn.Module):
+class LossAutoencoder(nn.Module):
     def __init__(self, lasso_lambda: int = 1e-3):
-        super(lossAutoencoder, self).__init__()
+        super(LossAutoencoder, self).__init__()
         self.lasso_lambda = lasso_lambda
 
     def lasso_loss(self, f):
@@ -67,11 +68,9 @@ class lossAutoencoder(nn.Module):
 
 
 #TODO: terminar el .train() del autoencoder para usar en el bucle de entrenamiento con el transformer.
-
-
 # Lo de abajo lo dejo para reciclar cuando tengamos que entrenar. Me fui al pasto.
 
-def entrenar_autoencoder(autoencoder: Autoencoder, activaciones: Dataset, lasso_lambda: int, epochs: int,
+def entrenar_autoencoder(autoencoder: Autoencoder, activaciones: Dataset, lasso_lambda: float, epochs: int,
                          batch_size: int, learning_rate=1e-3):
     # Preparamos el dataset:
     # Hacemos un dataset customizado de activaciones de neuronas suponiendo que activaciones
@@ -108,45 +107,64 @@ def entrenar_autoencoder(autoencoder: Autoencoder, activaciones: Dataset, lasso_
     optimizer = torch.optim.Adam(autoencoder.parameters(), lr=learning_rate)
 
     # Definimos la función de pérdida
-    loss_function = lossAutoencoder(lasso_lambda)
+    loss_function = LossAutoencoder(lasso_lambda)
 
     # Lista en la que iremos guardando el valor de la función de pérdida en cada
     # etapa de entrenamiento
     loss_list = []
 
-    # Entrenamiento
-    for epoch in range(epochs):
+    with mlflow.start_run():
+        params = {
+            "epochs": epochs,
+            "learning_rate": learning_rate,
+            "batch_size": batch_size,
+            "optimizer": "Adam"
+        }
+        mlflow.log_params(params)
 
-        total_loss = .0
+        with open("autoencoder_summary.txt", "w") as f:
+            f.write(str(summary(autoencoder)))
 
-        for x_train in loader:
-            input_data = x_train.to(device)
-            optimizer.zero_grad()
+        mlflow.log_artifact("autoencoder_summary.txt")
 
-            # Realizo la pasada forward por la red
-            encoded, decoded = autoencoder(input_data)
+        # Entrenamiento
+        for epoch in range(epochs):
+            total_loss = .0
 
-            loss = loss_function(input_activaciones = x_train, encoded = encoded, decoded =decoded)
+            for x_train in loader:
+                input_data = x_train.to(device)
+                optimizer.zero_grad()
 
-            # Realizo la pasada backward por la red
-            loss.backward()
+                # Realizo la pasada forward por la red
+                encoded, decoded = autoencoder(input_data)
 
-            # Actualizo los pesos de la red con el optimizador
-            optimizer.step()
+                loss = loss_function(input_activaciones = x_train, encoded = encoded, decoded =decoded)
 
-            # Me guardo el valor actual de la función de pérdida para luego graficarlo
-            loss_list.append(loss.data.item())
+                # Realizo la pasada backward por la red
+                loss.backward()
 
-            # Acumulo la loss del minibatch
-            total_loss += loss.item() * x_train.size(0)
+                # Actualizo los pesos de la red con el optimizador
+                optimizer.step()
 
-            # Normalizo la loss total
-        total_loss /= len(loader.dataset)
+                # Me guardo el valor actual de la función de pérdida para luego graficarlo
+                loss_list.append(loss.data.item())
 
-        # Muestro el valor de la función de pérdida cada 100 iteraciones
-        if epoch > 0 and epoch % 100 == 0:
-            print('Epoch %d, loss = %g' % (epoch, total_loss))
+                # Acumulo la loss del minibatch
+                total_loss += loss.item() * x_train.size(0)
 
+                # Normalizo la loss total
+            total_loss /= len(loader.dataset)
+
+            # Muestro el valor de la función de pérdida cada 100 iteraciones
+            if epoch > 0 and epoch % 100 == 0:
+                mlflow.log_metric(
+                    "lasso_loss",
+                    f"{total_loss:.4f}",
+                    step=len(loader.dataset) * epochs
+                )
+                print('Epoch %d, loss = %g' % (epoch, total_loss))
+            
+        mlflow.pytorch.log_model(autoencoder, "autoencoder")
     # Muestro la lista que contiene los valores de la función de pérdida
     # y una versión suavizada (rojo) para observar la tendencia
     plt.figure()
