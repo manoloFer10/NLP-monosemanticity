@@ -21,7 +21,8 @@ class Autoencoder(nn.Module):
         # Inicializamos como la mediana geométrica del dataset (lo dice en el paper de anthropic).
         # OJETE: la mediana geometrica debería ser sobre las activaciones de las neuronas. O sea, habría que precomputarlas
         # Muy costoso. Ver qué hacemos con esto.
-        self.pre_encoder_bias = nn.Parameter(torch.Tensor(dataset_geometric_median))
+
+        self.pre_encoder_bias = self.decoder.bias
 
     def encode(self, x):
         x = x - self.pre_encoder_bias
