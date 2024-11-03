@@ -75,6 +75,6 @@ with mlflow.start_run() as run:
                 current_step, model, tokenizer, optimizer, subset, batch_size, eval_interval
             )
 
-    model.save_to_mlflow()
+            model.save_to_mlflow()
 
 mlflow.end_run()

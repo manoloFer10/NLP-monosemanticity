@@ -5,8 +5,8 @@ from gpt_utils import get_tokenizer
 transformer_experiment = "Transformer"
 
 dataset = "wikitext-103-v1"
-subsets_max_size = 1
-num_training_subsets = 1
+subsets_max_size = 20
+num_training_subsets = 5
 
 tokenizer = get_tokenizer("gpt2")
 vocab_size = tokenizer.vocab_size
