@@ -1,11 +1,13 @@
 import torch
 from gpt_utils import get_tokenizer
 
-transformer_run_id = "1c153f8424004a56b805975bd3c45d52"
+transformer_run_id = "28adb2ef182940b0ac297c6a12e0dba0"
 
 learning_rate = 1e-3
 num_epochs = 3
 batch_size = 64
+
+sparse_dimension_factor = 4
 
 num_training_subsets = 2
 subsets_max_size = 1

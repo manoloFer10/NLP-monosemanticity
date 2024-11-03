@@ -6,12 +6,12 @@ transformer_experiment = "Transformer"
 
 dataset = "wikitext-103-v1"
 subsets_max_size = 20
-num_training_subsets = 5
+num_training_subsets = 100
 
 tokenizer = get_tokenizer("gpt2")
 vocab_size = tokenizer.vocab_size
 
-context_length = 20
+context_length = 40
 embedding_dim = 128
 num_of_attention_heads = 8
 num_of_blocks = 1

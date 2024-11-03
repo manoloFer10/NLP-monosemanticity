@@ -12,6 +12,7 @@ from autoencoder_params import (
     learning_rate,
     num_epochs,
     batch_size,
+    sparse_dimension_factor,
     num_training_subsets,
     subsets_max_size,
     tokenizer,
@@ -34,9 +35,9 @@ mlflow.set_experiment("Autoencoder")
 
 autoencoder = Autoencoder(
     dim_activaciones=gpt.embedding_dim,
-    dim_rala=512,
+    dim_rala=sparse_dimension_factor * gpt.embedding_dim,
     dataset_geometric_median=np.zeros(128),  # TODO
-    device=device,
+    device=device,  # TODO: unificar la manera en la que usamos el device
 ).to(device)
 criterion = LossAutoencoder()
 optimizer = torch.optim.Adam(autoencoder.parameters(), lr=learning_rate)
@@ -48,6 +49,8 @@ with mlflow.start_run() as run:
         "learning_rate": learning_rate,
         "num_epochs": num_epochs,
         "batch_size": batch_size,
+        "transformer_model_run_id": transformer_run_id,
+        "sparse_dimension_factor": sparse_dimension_factor,
         "num_training_subsets": num_training_subsets,
         "subsets_max_size": subsets_max_size,
     }
@@ -68,6 +71,6 @@ with mlflow.start_run() as run:
                 current_step, gpt, autoencoder, tokenizer, optimizer, criterion, subset, batch_size
             )
 
-    mlflow.pytorch.log_model(autoencoder, "autoencoder-512")
+    mlflow.pytorch.log_model(autoencoder, "autoencoder")
 
 mlflow.end_run()
