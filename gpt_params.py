@@ -1,9 +1,11 @@
 import math
 import torch
-from utils import get_tokenizer
+from gpt_utils import get_tokenizer
+
+transformer_experiment = "Transformer"
 
 dataset = "wikitext-103-v1"
-subsets_max_size = 20
+subsets_max_size = 1
 num_training_subsets = 1
 
 tokenizer = get_tokenizer("gpt2")
