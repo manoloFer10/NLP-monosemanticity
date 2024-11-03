@@ -1,8 +1,7 @@
 import torch
 from gpt_utils import get_tokenizer
 
-transformer_experiment = "Training Transformer"
-transformer_run_id = "bcf437c7ed984c8d9c3585f7eceb744d"
+transformer_run_id = "1c153f8424004a56b805975bd3c45d52"
 
 learning_rate = 1e-3
 num_epochs = 3
