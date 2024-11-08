@@ -12,11 +12,11 @@ class Autoencoder(nn.Module):
         super().__init__()
 
         self.encoder = nn.Linear(dim_activaciones, dim_rala)
-
         self.decoder = nn.Linear(dim_rala, dim_activaciones)
-
         self.relu = nn.ReLU()
-        
+    
+        self.dim_activaciones = dim_activaciones
+        self.dim_rala = dim_rala
         self.device = device
 
         # Este es el pre encoder bias que muestran en las cuentas del autoencoder antes de entrar en el encoder.
@@ -52,6 +52,16 @@ class Autoencoder(nn.Module):
         with torch.no_grad():
             self.decoder.weight.data = nn.functional.normalize(self.decoder.weight.data, p=2, dim=1)
 
+    @classmethod
+    def load_from_mlflow(cls, experiment, run_id, device="cpu"):
+        mlflow.set_experiment(experiment)
+        local_model_path = mlflow.artifacts.download_artifacts(
+            run_id=run_id, artifact_path="autoencoder/data/model.pth"
+        )
+        model = torch.load(local_model_path, map_location=device)
+        model.device = device
+        model.to(device)
+        return model
 
 class LossAutoencoder(nn.Module):
     def __init__(self, lasso_lambda: int = 1e-3):

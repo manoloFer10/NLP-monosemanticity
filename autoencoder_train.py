@@ -9,6 +9,7 @@ from autoencoder import Autoencoder
 from autoencoder import LossAutoencoder
 from gpt_params import transformer_experiment
 from autoencoder_params import (
+    autoencoder_experiment,
     learning_rate,
     num_epochs,
     batch_size,
@@ -30,7 +31,7 @@ mlflow.set_tracking_uri(uri="http://34.176.94.221:5000")
 
 gpt = GPTLanguageModel.load_from_mlflow(transformer_experiment, transformer_run_id, device)
 
-mlflow.set_experiment("Autoencoder")
+mlflow.set_experiment(autoencoder_experiment)
 
 
 autoencoder = Autoencoder(
