@@ -6,8 +6,9 @@ import numpy as np
 import mlflow
 from torchinfo import summary
 
+
 class Autoencoder(nn.Module):
-    def __init__(self, dim_activaciones: int, dim_rala: int, dataset_geometric_median):
+    def __init__(self, dim_activaciones: int, dim_rala: int, dataset_geometric_median, device):
         super().__init__()
 
         self.encoder = nn.Linear(dim_activaciones, dim_rala)
@@ -15,6 +16,8 @@ class Autoencoder(nn.Module):
         self.decoder = nn.Linear(dim_rala, dim_activaciones)
 
         self.relu = nn.ReLU()
+        
+        self.device = device
 
         # Este es el pre encoder bias que muestran en las cuentas del autoencoder antes de entrar en el encoder.
         # Entiendo que es un bias distinto al de la capa encoder porque ese va después de aplicar la matriz de pesos.
@@ -68,11 +71,18 @@ class LossAutoencoder(nn.Module):
         return ecm + lasso
 
 
-#TODO: terminar el .train() del autoencoder para usar en el bucle de entrenamiento con el transformer.
+# TODO: terminar el .train() del autoencoder para usar en el bucle de entrenamiento con el transformer.
 # Lo de abajo lo dejo para reciclar cuando tengamos que entrenar. Me fui al pasto.
 
-def entrenar_autoencoder(autoencoder: Autoencoder, activaciones: Dataset, lasso_lambda: float, epochs: int,
-                         batch_size: int, learning_rate=1e-3):
+
+def entrenar_autoencoder(
+    autoencoder: Autoencoder,
+    activaciones: Dataset,
+    lasso_lambda: float,
+    epochs: int,
+    batch_size: int,
+    learning_rate=1e-3,
+):
     # Preparamos el dataset:
     # Hacemos un dataset customizado de activaciones de neuronas suponiendo que activaciones
     # es un numpy array.
@@ -80,15 +90,15 @@ def entrenar_autoencoder(autoencoder: Autoencoder, activaciones: Dataset, lasso_
     device = (
         "cuda"
         if torch.cuda.is_available()
-        else "mps"
-        if torch.backends.mps.is_available()
-        else "cpu"
+        else "mps" if torch.backends.mps.is_available() else "cpu"
     )
 
     class DatasetActivaciones(Dataset):
         def __init__(self, activaciones):
-            self.activaciones = [torch.tensor(lista_activaciones, dtype=torch.float32) for lista_activaciones in
-                                 activaciones]
+            self.activaciones = [
+                torch.tensor(lista_activaciones, dtype=torch.float32)
+                for lista_activaciones in activaciones
+            ]
 
         def __len__(self):
             return len(self.activaciones)
@@ -119,7 +129,7 @@ def entrenar_autoencoder(autoencoder: Autoencoder, activaciones: Dataset, lasso_
             "epochs": epochs,
             "learning_rate": learning_rate,
             "batch_size": batch_size,
-            "optimizer": "Adam"
+            "optimizer": "Adam",
         }
         mlflow.log_params(params)
 
@@ -130,7 +140,7 @@ def entrenar_autoencoder(autoencoder: Autoencoder, activaciones: Dataset, lasso_
 
         # Entrenamiento
         for epoch in range(epochs):
-            total_loss = .0
+            total_loss = 0.0
 
             for x_train in loader:
                 input_data = x_train.to(device)
@@ -139,7 +149,7 @@ def entrenar_autoencoder(autoencoder: Autoencoder, activaciones: Dataset, lasso_
                 # Realizo la pasada forward por la red
                 encoded, decoded = autoencoder(input_data)
 
-                loss = loss_function(input_activaciones = x_train, encoded = encoded, decoded =decoded)
+                loss = loss_function(input_activaciones=x_train, encoded=encoded, decoded=decoded)
 
                 # Realizo la pasada backward por la red
                 loss.backward()
@@ -159,12 +169,10 @@ def entrenar_autoencoder(autoencoder: Autoencoder, activaciones: Dataset, lasso_
             # Muestro el valor de la función de pérdida cada 100 iteraciones
             if epoch > 0 and epoch % 100 == 0:
                 mlflow.log_metric(
-                    "lasso_loss",
-                    f"{total_loss:.4f}",
-                    step=len(loader.dataset) * epochs
+                    "lasso_loss", f"{total_loss:.4f}", step=len(loader.dataset) * epochs
                 )
-                print('Epoch %d, loss = %g' % (epoch, total_loss))
-            
+                print("Epoch %d, loss = %g" % (epoch, total_loss))
+
         mlflow.pytorch.log_model(autoencoder, "autoencoder")
     # Muestro la lista que contiene los valores de la función de pérdida
     # y una versión suavizada (rojo) para observar la tendencia
@@ -172,6 +180,6 @@ def entrenar_autoencoder(autoencoder: Autoencoder, activaciones: Dataset, lasso_
     loss_np_array = np.array(loss_list)
     plt.plot(loss_np_array, alpha=0.3)
     N = 60
-    running_avg_loss = np.convolve(loss_np_array, np.ones((N,)) / N, mode='valid')
-    plt.plot(running_avg_loss, color='red')
+    running_avg_loss = np.convolve(loss_np_array, np.ones((N,)) / N, mode="valid")
+    plt.plot(running_avg_loss, color="red")
     plt.title("Función de pérdida durante el entrenamiento")
