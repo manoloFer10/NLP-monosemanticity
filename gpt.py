@@ -4,7 +4,7 @@ import mlflow
 import torch.nn as nn
 from torch.nn import functional as F
 from torchinfo import summary
-
+from transformers import GPT2LMHeadModel
 
 class Head(nn.Module):
     """one head of self-attention"""
@@ -216,3 +216,12 @@ class GPTLanguageModel(nn.Module):
         x = self.ln_f(x)  # (B,T,C)
         logits = self.lm_head(x)  # (B,T,vocab_size)
         return logits
+    
+
+class GPT2Extended(GPT2LMHeadModel):
+    def __init__(self, config):
+        super().__init__(config)
+
+    def embed(self, input_ids):
+        output_embed = self(input_ids, output_hidden_states=True)
+        return output_embed.hidden_states[1]
