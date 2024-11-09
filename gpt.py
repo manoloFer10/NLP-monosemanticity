@@ -225,3 +225,20 @@ class GPT2Extended(GPT2LMHeadModel):
     def embed(self, input_ids):
         output_embed = self(input_ids, output_hidden_states=True)
         return output_embed.hidden_states[1]
+    
+    @property
+    def embedding_dim(self):
+        return self.config.hidden_size
+    
+    @property
+    def context_length(self):
+        return self.config.n_positions
+    
+    @property
+    def vocab_size(self):
+        return self.config.vocab_size
+    
+    @property
+    def device(self):
+        return next(self.parameters()).device
+
