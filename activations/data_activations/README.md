@@ -1,1 +1,0 @@
-Esta carpeta va a contener los datos de activaciones.

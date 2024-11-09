@@ -1,10 +1,8 @@
 import os
 import torch
-from torch.nn import functional as F
 from text_loader import TextLoader
 import mlflow
 from gpt import GPTLanguageModel
-from autoencoder_utils import train_subset
 from gpt_utils import save_wikipedia
 from autoencoder import Autoencoder
 from gpt_params import transformer_experiment
@@ -19,6 +17,7 @@ from activations_params import (
     device,
 )
 from activations import Activations
+import numpy as np
 
 os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "credentials.json"
 mlflow.set_tracking_uri(uri="http://34.176.94.221:5000")
@@ -62,24 +61,24 @@ with mlflow.start_run() as run:
             x, _ = data_loader.get_batch()
             with torch.no_grad():
                 x_embedding = gpt.embed(x)
-                y = gpt.unembed(x_embedding)
-
-                x_embedding = x_embedding[
-                    :, -1, :
-                ]  # NOTE: Para mi solo queremos quedarnos con las activaciones del ultimo mlp
-                y = y[:, -1, :]
-                probs = F.softmax(y, dim=-1)
-                tokens = torch.argmax(probs, dim=1).unsqueeze(1)
 
             encoded, decoded = autoencoder(x_embedding)
+            
+            contexts = []
+            tokens = []
 
-            contexts = [tokenizer.decode(context) for context in x]
-            tokens = [tokenizer.decode(token) for token in tokens]
+            for context in x:
+                for token in context:
+                    contexts.append(tokenizer.decode(context))
+                    tokens.append(tokenizer.decode(token))
+            
+            contexts = np.array(contexts)
+            tokens = np.array(tokens)
 
             activations.update_batch_data(
-                encoded, tokens, contexts
+                encoded.view(-1, encoded.shape[2]), tokens, contexts
             )  # TODO: en realidad creo que deberiamos agarrar la ultima columna de ls ys no?
 
-        activations.save_to_files("data/activations")
+        activations.save_to_files("./activations_data")
 
 mlflow.end_run()

@@ -6,9 +6,9 @@ import pandas as pd
 
 class Neuron:
     def __init__(self, feature_id: int):
-        self.activations = torch.empty(10)
+        self.activations = torch.zeros(10)
         self.tokens = np.array([""] * 10)
-        self.contexts = np.array([[""]] * 10)
+        self.contexts = np.array([""] * 10)
 
         self.feature_id = feature_id
 
@@ -17,8 +17,8 @@ class Neuron:
     ):
 
         top_activations = torch.cat((self.activations, new_activations))
-        top_tokens = torch.cat((self.tokens, new_tokens))
-        top_contexts = torch.cat((self.contexts, new_contexts))
+        top_tokens = np.concatenate((self.tokens, new_tokens))
+        top_contexts = np.concatenate((self.contexts, new_contexts))
 
         new_top10_activations, new_top10_indexs = torch.topk(top_activations, 10)
 
@@ -34,7 +34,7 @@ class Neuron:
     def save_to_csv(self, folder_path):
         file_name = f"activations_feature_{self.feature_id}.csv"
         final_path = os.path.join(folder_path, file_name)
-        data = {"Activacion": self.activations, "Tokens Id": self.tokens, "Context": self.contexts}
+        data = {"Activacion": self.activations.detach().numpy(), "Tokens Id": self.tokens, "Context": self.contexts}
         pd.DataFrame(data).to_csv(final_path, index=False)
 
 
@@ -55,8 +55,8 @@ class Activations:
         for i in range(self.dim_rala):
 
             new_neuron_activations = top10_batch_activations[:, i]  
-            new_neuron_tokens = batch_tokens[top10_batch_indices[:, i]]
-            new_neuron_contexts = batch_contexts[top10_batch_indices[:, i]]
+            new_neuron_tokens = batch_tokens[top10_batch_indices[:, i].tolist()]
+            new_neuron_contexts = batch_contexts[top10_batch_indices[:, i].tolist()]
 
             self.neurons[i].update_neuron(
                 new_neuron_activations, new_neuron_tokens, new_neuron_contexts
