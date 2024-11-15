@@ -10,6 +10,7 @@ num_epochs = 3
 batch_size = 64
 
 sparse_dimension_factor = 4
+lasso_lambda = 1e-7
 
 num_training_subsets = 2
 subsets_max_size = 1

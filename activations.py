@@ -50,6 +50,7 @@ class Activations:
         # autoencoder_input tiene un formato batch_size x emb_size_post_transformers (32 x 128)
         # post autoencoder queda algo de batch_size x emb_size_dim_rala (32 x 1024)
 
+        # NOTE: No entiendo esta funcion
         top10_batch_activations, top10_batch_indices = torch.topk(hidden_activations, 10, dim=0)
 
         for i in range(self.dim_rala):

@@ -14,6 +14,7 @@ from autoencoder_params import (
     num_epochs,
     batch_size,
     sparse_dimension_factor,
+    lasso_lambda,
     num_training_subsets,
     subsets_max_size,
     tokenizer,
@@ -40,13 +41,14 @@ autoencoder = Autoencoder(
     dataset_geometric_median=np.zeros(128),  # TODO
     device=device,  # TODO: unificar la manera en la que usamos el device
 ).to(device)
-criterion = LossAutoencoder()
+criterion = LossAutoencoder(lasso_lambda=lasso_lambda)
 optimizer = torch.optim.Adam(autoencoder.parameters(), lr=learning_rate)
 
 save_wikipedia(subsets_max_size=subsets_max_size, num_training_subsets=num_training_subsets)
 
 with mlflow.start_run() as run:
     params = {
+        "lasso_lambda": lasso_lambda,
         "learning_rate": learning_rate,
         "num_epochs": num_epochs,
         "batch_size": batch_size,
