@@ -34,7 +34,11 @@ class Neuron:
     def save_to_csv(self, folder_path):
         file_name = f"activations_feature_{self.feature_id}.csv"
         final_path = os.path.join(folder_path, file_name)
-        data = {"Activacion": self.activations.detach().numpy(), "Tokens Id": self.tokens, "Context": self.contexts}
+        data = {
+            "Activacion": self.activations.detach().numpy(),
+            "Tokens Id": self.tokens,
+            "Context": self.contexts,
+        }
         pd.DataFrame(data).to_csv(final_path, index=False)
 
 
