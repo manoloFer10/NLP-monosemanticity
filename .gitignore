@@ -6,3 +6,5 @@ data/
 mlruns/
 mlartifacts/
 credentials.json
+
+nlp_monosemanticity_env.yml
