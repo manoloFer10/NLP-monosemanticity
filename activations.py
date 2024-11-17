@@ -34,7 +34,11 @@ class Neuron:
     def save_to_csv(self, folder_path):
         file_name = f"activations_feature_{self.feature_id}.csv"
         final_path = os.path.join(folder_path, file_name)
-        data = {"Activacion": self.activations.detach().numpy(), "Tokens Id": self.tokens, "Context": self.contexts}
+        data = {
+            "Activacion": self.activations.detach().numpy(),
+            "Tokens Id": self.tokens,
+            "Context": self.contexts,
+        }
         pd.DataFrame(data).to_csv(final_path, index=False)
 
 
@@ -46,27 +50,22 @@ class Activations:
 
         self.neurons = [Neuron(i) for i in range(dim_rala)]
 
-    def update_batch_data(self, hidden_activations, batch_contexts):
+    def update_batch_data(self, hidden_activations, batch_tokens, batch_contexts):
         # autoencoder_input tiene un formato batch_size x emb_size_post_transformers (32 x 128)
         # post autoencoder queda algo de batch_size x emb_size_dim_rala (32 x 1024)
 
-        # NOTE: No entiendo esta funcion
         top10_batch_activations, top10_batch_indices = torch.topk(hidden_activations, 10, dim=0)
 
         for i in range(self.dim_rala):
 
-            new_neuron_activations = top10_batch_activations[:, i]  
-            # new_neuron_tokens = batch_tokens[top10_batch_indices[:, i].tolist()]
+            new_neuron_activations = top10_batch_activations[:, i].to("cpu")
+            new_neuron_tokens = batch_tokens[top10_batch_indices[:, i].tolist()]
             new_neuron_contexts = batch_contexts[top10_batch_indices[:, i].tolist()]
 
-            # self.neurons[i].update_neuron(
-            #     new_neuron_activations, new_neuron_tokens, new_neuron_contexts
-            # )
+            self.neurons[i].update_neuron(
+                new_neuron_activations, new_neuron_tokens, new_neuron_contexts
+            )
 
     def save_to_files(self, folder_path):
         for neuron in self.neurons:
             neuron.save_to_csv(folder_path)
-
-
-# como estas facundo
-# estas facundo bien

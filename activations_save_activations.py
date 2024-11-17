@@ -2,7 +2,6 @@ import os
 import torch
 from text_loader import TextLoader
 import mlflow
-from torch.nn import functional as F
 from gpt import GPTLanguageModel
 from gpt_utils import save_wikipedia
 from autoencoder import Autoencoder
@@ -19,7 +18,6 @@ from activations_params import (
 )
 from activations import Activations
 import numpy as np
-
 
 os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "credentials.json"
 mlflow.set_tracking_uri(uri="http://34.176.94.221:5000")
@@ -64,13 +62,24 @@ with mlflow.start_run() as run:
             with torch.no_grad():
                 x_embedding = gpt.embed(x)
                 encoded, decoded = autoencoder(x_embedding)
+            
+            contexts = []
+            tokens = []
 
-            contexts = np.array([[tokenizer.decode(_) for _ in word] for word in x])
+            for context in x:
+                decoded_context = tokenizer.decode(context)
+                for token in context:
+                    contexts.append(decoded_context)
+                    tokens.append(tokenizer.decode(token))
+            
+            contexts = np.array(contexts)
+            tokens = np.array(tokens)
 
-            activations.update_batch_data(encoded.to("cpu"), contexts)
+            activations.update_batch_data(
+                encoded.view(-1, encoded.shape[2]), tokens, contexts
+            )
+            print(f"Batch {batch+1}/{num_batches}")
 
         activations.save_to_files("./activations_data")
 
 mlflow.end_run()
-
-# NOTE: Hay neuronas del autoencoder que quedan muertas y nunca se activan.
