@@ -2,7 +2,6 @@ import os
 import torch
 from text_loader import TextLoader
 import mlflow
-from torch.nn import functional as F
 from gpt import GPTLanguageModel
 from gpt_utils import save_wikipedia
 from autoencoder import Autoencoder
@@ -19,7 +18,6 @@ from activations_params import (
 )
 from activations import Activations
 import numpy as np
-
 
 os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "credentials.json"
 mlflow.set_tracking_uri(uri="http://34.176.94.221:5000")
@@ -62,32 +60,25 @@ with mlflow.start_run() as run:
 
             x, _ = data_loader.get_batch()
             with torch.no_grad():
+                x_embedding = gpt.embed(x)
 
-                # NOTE: Estoy bastante convencido de que queremos considerar solo el ultimo
-                # embedding, porque es a partir del cual se genera el siguiente token
-                x_embedding = gpt.embed(x)[:, -1, :]
-                encoded, decoded = autoencoder(x_embedding)
+            encoded, decoded = autoencoder(x_embedding)
+            
+            contexts = []
+            tokens = []
 
-                # NOTE: Deberiamos hacer el unembed con los embeddings originales o con
-                # los embeddings que salen del autoencoder?
-                # Creo que lo segundo tendria mas sentido si lo que queremos es "controlar"
-                # los outputs del modelo
-                logits = gpt.unembed(x_embedding)
-                probs = F.softmax(logits, dim=-1)
+            for context in x:
+                for token in context:
+                    contexts.append(tokenizer.decode(context))
+                    tokens.append(tokenizer.decode(token))
+            
+            contexts = np.array(contexts)
+            tokens = np.array(tokens)
 
-                # NOTE: Revisar que esten bien los decodings
-                # Greedy decoding siempre da "and" lo cual es un bajon y vamos a tener que arreglarlo
-                y = probs.argmax(dim=-1)
-                # multinomial
-                # y = torch.multinomial(probs, num_samples=1)
-
-            contexts = np.array([tokenizer.decode(_) for _ in x])
-            tokens = np.array([tokenizer.decode(_) for _ in y])
-
-            activations.update_batch_data(encoded.to("cpu"), tokens, contexts)
+            activations.update_batch_data(
+                encoded.view(-1, encoded.shape[2]), tokens, contexts
+            )  # TODO: en realidad creo que deberiamos agarrar la ultima columna de ls ys no?
 
         activations.save_to_files("./activations_data")
 
 mlflow.end_run()
-
-# NOTE: Hay neuronas del autoencoder que quedan muertas y nunca se activan.
