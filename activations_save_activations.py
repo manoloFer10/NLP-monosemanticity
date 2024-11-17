@@ -77,7 +77,7 @@ with mlflow.start_run() as run:
 
             activations.update_batch_data(
                 encoded.view(-1, encoded.shape[2]), tokens, contexts
-            )  # TODO: en realidad creo que deberiamos agarrar la ultima columna de ls ys no?
+            )
 
         activations.save_to_files("./activations_data")
 
