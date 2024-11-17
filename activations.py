@@ -55,7 +55,7 @@ class Activations:
 
         for i in range(self.dim_rala):
 
-            new_neuron_activations = top10_batch_activations[:, i]  
+            new_neuron_activations = top10_batch_activations[:, i].to("cpu")
             new_neuron_tokens = batch_tokens[top10_batch_indices[:, i].tolist()]
             new_neuron_contexts = batch_contexts[top10_batch_indices[:, i].tolist()]
 

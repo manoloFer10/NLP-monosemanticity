@@ -61,15 +61,15 @@ with mlflow.start_run() as run:
             x, _ = data_loader.get_batch()
             with torch.no_grad():
                 x_embedding = gpt.embed(x)
-
-            encoded, decoded = autoencoder(x_embedding)
+                encoded, decoded = autoencoder(x_embedding)
             
             contexts = []
             tokens = []
 
             for context in x:
+                decoded_context = tokenizer.decode(context)
                 for token in context:
-                    contexts.append(tokenizer.decode(context))
+                    contexts.append(decoded_context)
                     tokens.append(tokenizer.decode(token))
             
             contexts = np.array(contexts)
@@ -78,6 +78,7 @@ with mlflow.start_run() as run:
             activations.update_batch_data(
                 encoded.view(-1, encoded.shape[2]), tokens, contexts
             )
+            print(f"Batch {batch+1}/{num_batches}")
 
         activations.save_to_files("./activations_data")
 
