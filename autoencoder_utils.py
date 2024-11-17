@@ -10,8 +10,10 @@ def estimate_loss(
 ):
     autoencoder.eval()
     losses = {}
+    norms = {}
     for split, data_loader in [("train", train_data_loader), ("eval", val_data_loader)]:
         split_losses = []
+        split_norms = []
         for _ in range(eval_interval):
             x, _ = data_loader.get_batch()
             with torch.no_grad():
@@ -19,11 +21,16 @@ def estimate_loss(
             encoded, decoded = autoencoder(x_embedding)
             loss = criterion(x_embedding, encoded, decoded)
             split_losses.append(loss.item())
+            
+            # HACK: forma rapida de ver como esta funcionando lasso
+            # mejorar luego
+            split_norms.append(encoded[0][0].norm().item())
 
         losses[split] = sum(split_losses) / len(split_losses)
+        norms[split] = sum(split_norms) / len(split_norms)
 
     autoencoder.train()
-    return losses
+    return losses, norms
 
 
 def train_subset(
@@ -48,18 +55,19 @@ def train_subset(
     start_time = time.time()
     for batch in range(num_batches):
         if batch % eval_every_n_batches == 0:
-            losses = estimate_loss(
+            losses, norms = estimate_loss(
                 gpt, autoencoder, criterion, train_data_loader, eval_data_loader, eval_interval
             )
             interval = time.time() - start_time
             print(
-                f"step {batch}/{num_batches}: train loss {losses['train']:.4f}, eval loss {losses['eval']:.4f}, interval time ({autoencoder.device}): {interval}"
+                f"step {batch}/{num_batches}: train loss {losses['train']:.4f}, eval loss {losses['eval']:.4f}, eval norms {norms['eval']:.4f} interval time ({autoencoder.device}): {interval}"
             )
             start_time = time.time()
 
             mlflow.log_metric("lasso_loss_train", f"{losses['train']:.4f}", step=current_step)
             mlflow.log_metric("lasso_loss_eval", f"{losses['eval']:.4f}", step=current_step)
-            mlflow.log_metric("interval_time", f"{interval:.4f}", step=current_step)
+            mlflow.log_metric("norms_eval", f"{norms['eval']:.4f}", step=current_step)
+            # mlflow.log_metric("interval_time", f"{interval:.4f}", step=current_step)
 
             current_step += 1
 
