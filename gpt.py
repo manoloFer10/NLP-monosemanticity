@@ -4,7 +4,7 @@ import mlflow
 import torch.nn as nn
 from torch.nn import functional as F
 from torchinfo import summary
-
+from transformers import GPT2LMHeadModel
 
 class Head(nn.Module):
     """one head of self-attention"""
@@ -174,12 +174,8 @@ class GPTLanguageModel(nn.Module):
         B, T = idx.shape
 
         # idx and targets are both (B,T) tensor of integers
-        tok_emb = self.token_embedding_table(idx)  # (B,T,C)
-        pos_emb = self.position_embedding_table(torch.arange(T, device=self.device))  # (T,C)
-        x = tok_emb + pos_emb  # (B,T,C)
-        x = self.blocks(x)  # (B,T,C)
-        x = self.ln_f(x)  # (B,T,C)
-        logits = self.lm_head(x)  # (B,T,vocab_size)
+        x = self.embed(idx)  # (B,T,C)
+        logits = self.unembed(x)  # (B,T,V)
 
         if targets is None:
             loss = None
@@ -227,9 +223,39 @@ class GPTLanguageModel(nn.Module):
 
     def embed(self, idx):
         _, T = idx.shape
-        tok_emb = self.token_embedding_table(idx)
-        pos_emb = self.position_embedding_table(torch.arange(T, device=self.device))
-        x = tok_emb + pos_emb
-        x = self.blocks(x)
-
+        tok_emb = self.token_embedding_table(idx) # (B,T,C)
+        pos_emb = self.position_embedding_table(torch.arange(T, device=self.device)) # (T,C)
+        x = tok_emb + pos_emb # (B,T,C)
+        x = self.blocks(x) # (B,T,C)
         return x
+    
+    def unembed(self, x):
+        x = self.ln_f(x)  # (B,T,C)
+        logits = self.lm_head(x)  # (B,T,vocab_size)
+        return logits
+    
+
+class GPT2Extended(GPT2LMHeadModel):
+    def __init__(self, config):
+        super().__init__(config)
+
+    def embed(self, input_ids):
+        output_embed = self(input_ids, output_hidden_states=True)
+        return output_embed.hidden_states[1]
+    
+    @property
+    def embedding_dim(self):
+        return self.config.hidden_size
+    
+    @property
+    def context_length(self):
+        return self.config.n_positions
+    
+    @property
+    def vocab_size(self):
+        return self.config.vocab_size
+    
+    @property
+    def device(self):
+        return next(self.parameters()).device
+
