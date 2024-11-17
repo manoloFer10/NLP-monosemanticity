@@ -62,29 +62,12 @@ with mlflow.start_run() as run:
 
             x, _ = data_loader.get_batch()
             with torch.no_grad():
-
-                # NOTE: Estoy bastante convencido de que queremos considerar solo el ultimo
-                # embedding, porque es a partir del cual se genera el siguiente token
-                x_embedding = gpt.embed(x)[:, -1, :]
+                x_embedding = gpt.embed(x)
                 encoded, decoded = autoencoder(x_embedding)
 
-                # NOTE: Deberiamos hacer el unembed con los embeddings originales o con
-                # los embeddings que salen del autoencoder?
-                # Creo que lo segundo tendria mas sentido si lo que queremos es "controlar"
-                # los outputs del modelo
-                logits = gpt.unembed(x_embedding)
-                probs = F.softmax(logits, dim=-1)
+            contexts = np.array([[tokenizer.decode(_) for _ in word] for word in x])
 
-                # NOTE: Revisar que esten bien los decodings
-                # Greedy decoding siempre da "and" lo cual es un bajon y vamos a tener que arreglarlo
-                y = probs.argmax(dim=-1)
-                # multinomial
-                # y = torch.multinomial(probs, num_samples=1)
-
-            contexts = np.array([tokenizer.decode(_) for _ in x])
-            tokens = np.array([tokenizer.decode(_) for _ in y])
-
-            activations.update_batch_data(encoded.to("cpu"), tokens, contexts)
+            activations.update_batch_data(encoded.to("cpu"), contexts)
 
         activations.save_to_files("./activations_data")
 

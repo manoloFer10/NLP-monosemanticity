@@ -46,7 +46,7 @@ class Activations:
 
         self.neurons = [Neuron(i) for i in range(dim_rala)]
 
-    def update_batch_data(self, hidden_activations, batch_tokens, batch_contexts):
+    def update_batch_data(self, hidden_activations, batch_contexts):
         # autoencoder_input tiene un formato batch_size x emb_size_post_transformers (32 x 128)
         # post autoencoder queda algo de batch_size x emb_size_dim_rala (32 x 1024)
 
@@ -56,12 +56,12 @@ class Activations:
         for i in range(self.dim_rala):
 
             new_neuron_activations = top10_batch_activations[:, i]  
-            new_neuron_tokens = batch_tokens[top10_batch_indices[:, i].tolist()]
+            # new_neuron_tokens = batch_tokens[top10_batch_indices[:, i].tolist()]
             new_neuron_contexts = batch_contexts[top10_batch_indices[:, i].tolist()]
 
-            self.neurons[i].update_neuron(
-                new_neuron_activations, new_neuron_tokens, new_neuron_contexts
-            )
+            # self.neurons[i].update_neuron(
+            #     new_neuron_activations, new_neuron_tokens, new_neuron_contexts
+            # )
 
     def save_to_files(self, folder_path):
         for neuron in self.neurons:

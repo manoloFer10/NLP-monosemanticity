@@ -50,7 +50,7 @@ def train_subset(
     train_data_loader = TextLoader(data[:train_size], gpt.context_length, batch_size, gpt.device)
     eval_data_loader = TextLoader(data[train_size:], gpt.context_length, batch_size, gpt.device)
     num_batches = len(train_data_loader)
-    eval_every_n_batches = num_batches // 5
+    eval_every_n_batches = num_batches // 5 + 1
 
     start_time = time.time()
     for batch in range(num_batches):
