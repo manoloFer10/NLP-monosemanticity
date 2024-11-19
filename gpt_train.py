@@ -1,4 +1,6 @@
 import torch
+import mlflow
+import mlflow_env
 from gpt_params import (
     transformer_experiment,
     subsets_max_size,
@@ -16,13 +18,9 @@ from gpt_params import (
     epochs,
     device,
 )
-from gpt_utils import save_wikipedia, train_subset
 from gpt import GPTLanguageModel
-import mlflow
-import os
+from gpt_utils import save_wikipedia, train_subset
 
-os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "credentials.json"
-mlflow.set_tracking_uri(uri="http://34.176.94.221:5000")
 mlflow.set_experiment(transformer_experiment)
 
 model = GPTLanguageModel(
@@ -41,6 +39,7 @@ optimizer = torch.optim.AdamW(model.parameters(), lr=learning_rate)
 print(sum(p.numel() for p in m.parameters()) / 1e6, "M parameters")
 with mlflow.start_run() as run:
     params = {
+        "Dataset": "wikitext-103-v1",
         "subsets_max_size": subsets_max_size,
         "num_training_subsets": num_training_subsets,
         "epochs": epochs,

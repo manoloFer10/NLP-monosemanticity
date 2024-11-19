@@ -3,7 +3,7 @@ from gpt_utils import get_tokenizer
 
 autoencoder_experiment = "Autoencoder"
 
-transformer_run_id = "17825e172dbe48b8934c57b59e85d83c"
+transformer_run_id = "59c595d993e94586b92816aa4ecbac62"
 
 learning_rate = 1e-3
 num_epochs = 3
