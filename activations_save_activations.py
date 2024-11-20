@@ -1,12 +1,8 @@
-import os
 import torch
-from text_loader import TextLoader
 import mlflow
+import mlflow_env
+import numpy as np
 from gpt import GPTLanguageModel
-from gpt_utils import save_wikipedia
-from autoencoder import Autoencoder
-from gpt_params import transformer_experiment
-from autoencoder_params import autoencoder_experiment
 from activations_params import (
     tokenizer,
     num_training_subsets,
@@ -16,11 +12,12 @@ from activations_params import (
     autoencoder_run_id,
     device,
 )
+from text_loader import TextLoader
+from autoencoder import Autoencoder
+from gpt_utils import save_wikipedia
+from gpt_params import transformer_experiment
+from autoencoder_params import autoencoder_experiment
 from activations import Activations
-import numpy as np
-
-os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "credentials.json"
-mlflow.set_tracking_uri(uri="http://34.176.94.221:5000")
 
 gpt = GPTLanguageModel.load_from_mlflow(transformer_experiment, transformer_run_id, device)
 autoencoder = Autoencoder.load_from_mlflow(autoencoder_experiment, autoencoder_run_id, device)

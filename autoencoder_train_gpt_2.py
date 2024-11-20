@@ -22,8 +22,7 @@ from autoencoder_params import (
     transformer_run_id,
 )
 
-os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "credentials.json"
-mlflow.set_tracking_uri(uri="http://34.176.94.221:5000")
+import mlflow_env
 mlflow.set_experiment(autoencoder_experiment)
 
 gpt = GPT2Extended.from_pretrained("gpt2").to(device)

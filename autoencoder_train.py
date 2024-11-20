@@ -27,8 +27,7 @@ from autoencoder_params import (
 # El load from mlflow modifica el extperiment
 # Despues tengo que volver a setearlo a Autoencoder
 
-os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "credentials.json"
-mlflow.set_tracking_uri(uri="http://34.176.94.221:5000")
+import mlflow_env
 
 gpt = GPTLanguageModel.load_from_mlflow(transformer_experiment, transformer_run_id, device)
 
