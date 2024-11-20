@@ -10,3 +10,5 @@ mlflow_data/
 
 nlp_monosemanticity_env.yml
 activations_data/
+
+.env

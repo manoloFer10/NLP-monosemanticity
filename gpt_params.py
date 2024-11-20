@@ -17,7 +17,7 @@ embedding_dim = 128
 num_of_attention_heads = 8
 num_of_blocks = 1
 
-batch_size = 768
+batch_size = 16
 learning_rate = 0.001
 dropout = 0
 
