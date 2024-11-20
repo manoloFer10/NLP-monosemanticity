@@ -3,6 +3,8 @@ import mlflow
 import mlflow_env
 from gpt_params import (
     transformer_experiment,
+    dataset_name,
+    dataset_config,
     subsets_max_size,
     num_training_subsets,
     tokenizer,
@@ -19,7 +21,7 @@ from gpt_params import (
     device,
 )
 from gpt import GPTLanguageModel
-from gpt_utils import save_wikipedia, train_subset
+from gpt_utils import save_dataset, train_subset
 
 mlflow.set_experiment(transformer_experiment)
 
@@ -55,7 +57,12 @@ with mlflow.start_run() as run:
     }
     mlflow.log_params(params)
 
-    save_wikipedia(subsets_max_size=subsets_max_size, num_training_subsets=num_training_subsets)
+    save_dataset(
+        dataset_name=dataset_name,
+        dataset_config=dataset_config,
+        subsets_max_size=subsets_max_size,
+        num_training_subsets=num_training_subsets,
+    )
 
     print("Training model")
     print("Parameters:")
@@ -67,7 +74,7 @@ with mlflow.start_run() as run:
         for i in range(num_training_subsets):
             print(f"Training subset {i+1}")
             print("____________________________________")
-            with open(f"data/wikitext-103-v1/train-{i}.txt", "r", encoding="utf-8") as f:
+            with open(f"data/{dataset_name}-{dataset_config}/train-{i}.txt", "r", encoding="utf-8") as f:
                 subset = f.read()
 
             current_step = train_subset(
