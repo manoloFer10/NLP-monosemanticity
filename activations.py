@@ -2,6 +2,7 @@ import os
 import torch
 import numpy as np
 import pandas as pd
+import mlflow
 
 
 class Neuron:
@@ -31,7 +32,7 @@ class Neuron:
     def get_data(self):
         return self.activations, self.tokens, self.contexts
 
-    def save_to_csv(self, folder_path):
+    def save_to_csv(self, folder_path, to_mlflow):
         file_name = f"activations_feature_{self.feature_id}.csv"
         final_path = os.path.join(folder_path, file_name)
         data = {
@@ -39,7 +40,11 @@ class Neuron:
             "Tokens Id": self.tokens,
             "Context": self.contexts,
         }
-        pd.DataFrame(data).to_csv(final_path, index=False)
+        df = pd.DataFrame(data)
+        df.to_csv(final_path, index=False)
+
+        if to_mlflow:
+            mlflow.log_artifact(final_path)
 
 
 class Activations:
@@ -66,6 +71,10 @@ class Activations:
                 new_neuron_activations, new_neuron_tokens, new_neuron_contexts
             )
 
-    def save_to_files(self, folder_path):
+    def save_to_files(self, folder_path, to_mlflow=False):
+        """
+        For mlflow=True, it should be run in a mlflow run
+        """
+        
         for neuron in self.neurons:
-            neuron.save_to_csv(folder_path)
+            neuron.save_to_csv(folder_path, to_mlflow)

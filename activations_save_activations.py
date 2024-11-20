@@ -77,6 +77,6 @@ with mlflow.start_run() as run:
             )
             print(f"Batch {batch+1}/{num_batches}")
 
-        activations.save_to_files("./activations_data")
+        activations.save_to_files("./activations_data", to_mlflow=True)
 
 mlflow.end_run()
