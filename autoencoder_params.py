@@ -11,8 +11,8 @@ learning_rate = 1e-4
 num_epochs = 1
 batch_size = 64
 
-sparse_dimension_factor = 4
-lasso_lambda = 1e-7
+sparse_dimension_factor = 8
+lasso_lambda = 5e-3
 
 subsets_max_size = 20
 num_training_subsets = 20
