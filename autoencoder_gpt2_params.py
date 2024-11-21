@@ -1,17 +1,14 @@
 import torch
 from gpt_utils import get_tokenizer
 
-autoencoder_experiment = "Autoencoder"
-
-transformer_run_id = "59c595d993e94586b92816aa4ecbac62"
-
 dataset_name="wikitext"
 dataset_config="wikitext-103-v1"
+autoencoder_experiment = "Autoencoder GPT2"
 learning_rate = 1e-3
 num_epochs = 3
-batch_size = 64
+batch_size = 32
 
-sparse_dimension_factor = 4
+sparse_dimension_factor = 2
 lasso_lambda = 1e-7
 
 num_training_subsets = 2
