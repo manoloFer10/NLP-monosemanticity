@@ -41,7 +41,7 @@ optimizer = torch.optim.AdamW(model.parameters(), lr=learning_rate)
 print(sum(p.numel() for p in m.parameters()) / 1e6, "M parameters")
 with mlflow.start_run() as run:
     params = {
-        "Dataset": "wikitext-103-v1",
+        "Dataset": f"{dataset_name}-{dataset_config}",
         "subsets_max_size": subsets_max_size,
         "num_training_subsets": num_training_subsets,
         "epochs": epochs,
