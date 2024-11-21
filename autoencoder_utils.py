@@ -76,6 +76,12 @@ def train_subset(
 
         x, _ = train_data_loader.get_batch()
         with torch.no_grad():
+            # NOTE: Ahora agarramos batch size de activaciones, como hace jake
+            # no estoy 100% convencido de por que hacer esto es lo correcto
+            # pero sí me suena super raro pasarle al autoencoder algo de shape
+            # [batch_size, context_length, embedding_dim].
+            # Lo que nos interesa es replicar activaciones particulares, por lo que
+            # tiene sentido que x_embedding tenga shape [batch_size, embedding_dim]
             x_embedding = gpt.embed(x)
             i = torch.randint(0, gpt.context_length, (1,))
             x_embedding = x_embedding[:, i, :].squeeze(1)

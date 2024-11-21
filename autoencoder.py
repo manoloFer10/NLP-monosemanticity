@@ -65,7 +65,12 @@ class LossAutoencoder(nn.Module):
         self.lasso_lambda = lasso_lambda
 
     def lasso_loss(self, encoded):
+        # NOTE: Antes haciamos esto
         # l1 = torch.norm(f, p=1)
+        
+        # Pero estaba mal porque computabamos la norma de todo el batch
+        # ahora computamos la norma de cada vector de activaciones y promediamos
+        # Como que antes fomentabamos espacidad en todo el batch (creo que no tiene sentido)
         l1 = encoded.norm(p=1, dim=-1).mean()
         return self.lasso_lambda * l1.mean()
 
@@ -76,24 +81,3 @@ class LossAutoencoder(nn.Module):
         lasso = self.lasso_loss(encoded)
 
         return ecm + lasso
-
-
-# NOTE: El chat me tiro que hagamos esto...
-# class LossAutoencoder(nn.Module):
-#     def __init__(self, lasso_lambda=1e-3):
-#         super(LossAutoencoder, self).__init__()
-#         self.lasso_lambda = lasso_lambda
-#         self.reconstruction_loss = nn.MSELoss()  # Use MSE for reconstruction
-
-#     def lasso_loss(self, encoded):
-#         # Feature-level sparsity
-#         l1_per_feature = torch.sum(torch.abs(encoded), dim=0)  # Sum over batch for each feature
-#         return self.lasso_lambda * l1_per_feature.mean()
-
-#     def forward(self, input_activaciones, encoded, decoded):
-#         ecm = self.reconstruction_loss(decoded, input_activaciones)
-#         lasso = self.lasso_loss(encoded)
-
-#         # Optionally add weight regularization
-#         # decoder_l2 = torch.norm(self.decoder.weight, p=2) * 1e-4
-#         return ecm + lasso  # + decoder_l2 if needed
