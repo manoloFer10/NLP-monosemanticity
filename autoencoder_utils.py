@@ -18,6 +18,9 @@ def estimate_loss(
             x, _ = data_loader.get_batch()
             with torch.no_grad():
                 x_embedding = gpt.embed(x)
+                i = torch.randint(0, gpt.context_length, (1,))
+                x_embedding = x_embedding[:, i, :].squeeze(1)
+
             encoded, decoded = autoencoder(x_embedding)
             loss = criterion(x_embedding, encoded, decoded)
             split_losses.append(loss.item())
@@ -74,6 +77,8 @@ def train_subset(
         x, _ = train_data_loader.get_batch()
         with torch.no_grad():
             x_embedding = gpt.embed(x)
+            i = torch.randint(0, gpt.context_length, (1,))
+            x_embedding = x_embedding[:, i, :].squeeze(1)
 
         optimizer.zero_grad()
         encoded, decoded = autoencoder(x_embedding)

@@ -20,7 +20,8 @@ class Autoencoder(nn.Module):
         # OJETE: la mediana geometrica debería ser sobre las activaciones de las neuronas. O sea, habría que precomputarlas
         # Muy costoso. Ver qué hacemos con esto.
 
-        self.pre_encoder_bias = self.decoder.bias
+        # NOTE: Hice esto para no tener que calcular la mediana geometrica. Lo ponemos como un parametreo entrenable y adios.
+        self.pre_encoder_bias = nn.Parameter(torch.zeros(dim_activaciones, device=device))
 
     def encode(self, x):
         x = x - self.pre_encoder_bias
@@ -63,9 +64,10 @@ class LossAutoencoder(nn.Module):
         super(LossAutoencoder, self).__init__()
         self.lasso_lambda = lasso_lambda
 
-    def lasso_loss(self, f):
-        l1 = torch.norm(f, p=1)
-        return self.lasso_lambda * l1
+    def lasso_loss(self, encoded):
+        # l1 = torch.norm(f, p=1)
+        l1 = encoded.norm(p=1, dim=-1).mean()
+        return self.lasso_lambda * l1.mean()
 
     def forward(self, input_activaciones, encoded, decoded):
         mse = nn.MSELoss()
@@ -74,3 +76,24 @@ class LossAutoencoder(nn.Module):
         lasso = self.lasso_loss(encoded)
 
         return ecm + lasso
+
+
+# NOTE: El chat me tiro que hagamos esto...
+# class LossAutoencoder(nn.Module):
+#     def __init__(self, lasso_lambda=1e-3):
+#         super(LossAutoencoder, self).__init__()
+#         self.lasso_lambda = lasso_lambda
+#         self.reconstruction_loss = nn.MSELoss()  # Use MSE for reconstruction
+
+#     def lasso_loss(self, encoded):
+#         # Feature-level sparsity
+#         l1_per_feature = torch.sum(torch.abs(encoded), dim=0)  # Sum over batch for each feature
+#         return self.lasso_lambda * l1_per_feature.mean()
+
+#     def forward(self, input_activaciones, encoded, decoded):
+#         ecm = self.reconstruction_loss(decoded, input_activaciones)
+#         lasso = self.lasso_loss(encoded)
+
+#         # Optionally add weight regularization
+#         # decoder_l2 = torch.norm(self.decoder.weight, p=2) * 1e-4
+#         return ecm + lasso  # + decoder_l2 if needed
