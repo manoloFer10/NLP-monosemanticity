@@ -77,7 +77,7 @@ class LossAutoencoder(nn.Module):
     def forward(self, input_activaciones, encoded, decoded):
         mse = nn.MSELoss()
 
-        ecm = mse(decoded, input_activaciones)
-        lasso = self.lasso_loss(encoded)
+        recon_loss = mse(decoded, input_activaciones)
+        norm_loss = self.lasso_loss(encoded)
 
-        return ecm + lasso
+        return recon_loss + norm_loss, recon_loss, norm_loss

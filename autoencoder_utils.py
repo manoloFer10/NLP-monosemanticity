@@ -10,9 +10,13 @@ def estimate_loss(
 ):
     autoencoder.eval()
     losses = {}
+    recon_losses = {}
+    norm_losses = {}
     acts = {}
     for split, data_loader in [("train", train_data_loader), ("eval", val_data_loader)]:
         split_losses = []
+        split_recon_losses = []
+        split_norm_losses = []
         split_acts = []
         for _ in range(eval_interval):
             x, _ = data_loader.get_batch()
@@ -22,19 +26,23 @@ def estimate_loss(
                 x_embedding = x_embedding[:, i, :].squeeze(1)
 
             encoded, decoded = autoencoder(x_embedding)
-            loss = criterion(x_embedding, encoded, decoded)
+            loss, recon_loss, norm_loss = criterion(x_embedding, encoded, decoded)
             split_losses.append(loss.item())
+            split_recon_losses.append(recon_loss.item())
+            split_norm_losses.append(norm_loss.item())
 
             # HACK: forma rapida de ver como esta funcionando lasso
             # mejorar luego
-            act = (encoded > 0).sum(dim=-1).float().mean()
+            act = (abs(encoded) > 0.1).sum(dim=-1).float().mean()
             split_acts.append(act.item())
 
         losses[split] = sum(split_losses) / len(split_losses)
         acts[split] = sum(split_acts) / len(split_acts)
+        recon_losses[split] = sum(split_recon_losses) / len(split_recon_losses)
+        norm_losses[split] = sum(split_norm_losses) / len(split_norm_losses)
 
     autoencoder.train()
-    return losses, acts
+    return losses, recon_losses, norm_losses, acts
 
 
 def train_subset(
@@ -59,20 +67,26 @@ def train_subset(
     start_time = time.time()
     for batch in range(num_batches):
         if batch % eval_every_n_batches == 0:
-            losses, acts = estimate_loss(
+            losses, recon_losses, norm_losses, acts = estimate_loss(
                 gpt, autoencoder, criterion, train_data_loader, eval_data_loader, eval_interval
             )
             interval = time.time() - start_time
             print(
-                f"step {batch}/{num_batches}: train loss {losses['train']:.4f}, eval loss {losses['eval']:.4f}, eval act {acts['eval']:.4f} interval time ({autoencoder.device}): {interval}"
+                f"step {batch}/{num_batches}: "
+                f"train loss {losses['train']:.4f}, "
+                f"eval loss {losses['eval']:.4f}, "
+                f"eval recon loss {recon_losses['eval']}, "
+                f"eval norm loss {norm_losses['eval']}, "
+                f"eval act {acts['eval']:.4f} "
+                f"interval time ({autoencoder.device}): {interval}"
             )
             start_time = time.time()
 
-            mlflow.log_metric("lasso_loss_train", f"{losses['train']:.4f}", step=current_step)
-            mlflow.log_metric("lasso_loss_eval", f"{losses['eval']:.4f}", step=current_step)
+            mlflow.log_metric("loss_train", f"{losses['train']:.4f}", step=current_step)
+            mlflow.log_metric("loss_eval", f"{losses['eval']:.4f}", step=current_step)
+            mlflow.log_metric("recon_loss_eval", f"{recon_losses['eval']:.4f}", step=current_step)
+            mlflow.log_metric("norm_loss_eval", f"{norm_losses['eval']:.4f}", step=current_step)
             mlflow.log_metric("acts_eval", f"{acts['eval']:.4f}", step=current_step)
-            # mlflow.log_metric("interval_time", f"{interval:.4f}", step=current_step)
-
             current_step += 1
 
         x, _ = train_data_loader.get_batch()
@@ -89,7 +103,7 @@ def train_subset(
 
         optimizer.zero_grad()
         encoded, decoded = autoencoder(x_embedding)
-        loss = criterion(x_embedding, encoded, decoded)
+        loss, recon_loss, norm_loss = criterion(x_embedding, encoded, decoded)
 
         loss.backward()
         optimizer.step()

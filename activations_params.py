@@ -2,11 +2,11 @@ import torch
 from gpt_utils import get_tokenizer
 
 transformer_run_id = "1631cdf63904427fb5833afa9372b625"
-autoencoder_run_id = "a7af8e64d7794632b157e5f431b9a17d"
+autoencoder_run_id = "6f8b3484d76f448e8cb65adf1eb7827d"
 
 dataset_name="wikitext"
 dataset_config="wikitext-103-v1"
-num_training_subsets = 2
+num_training_subsets = 10
 subsets_max_size = 1
 batch_size = 64
 

@@ -43,9 +43,6 @@ class Neuron:
         df = pd.DataFrame(data)
         df.to_csv(final_path, index=False)
 
-        if to_mlflow:
-            mlflow.log_artifact(final_path)
-
 
 class Activations:
     def __init__(self, batch_size: int, dim_rala: int):
@@ -78,3 +75,8 @@ class Activations:
         
         for neuron in self.neurons:
             neuron.save_to_csv(folder_path, to_mlflow)
+            
+        if to_mlflow:    
+            os.system(f"zip -r {folder_path}.zip {folder_path}")
+            mlflow.log_artifact(f"{folder_path}.zip")
+            os.system(f"rm {folder_path}.zip")
