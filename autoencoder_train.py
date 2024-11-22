@@ -26,7 +26,6 @@ from autoencoder_params import (
 )
 
 
-
 gpt = GPTLanguageModel.load_from_mlflow(transformer_experiment, transformer_run_id, device)
 mlflow.set_experiment(autoencoder_experiment)
 
@@ -34,7 +33,7 @@ mlflow.set_experiment(autoencoder_experiment)
 autoencoder = Autoencoder(
     dim_activaciones=gpt.embedding_dim,
     dim_rala=sparse_dimension_factor * gpt.embedding_dim,
-    dataset_geometric_median=np.zeros(128),  # TODO
+    # dataset_geometric_median=np.zeros(128),  # TODO
     device=device,  # TODO: unificar la manera en la que usamos el device
 ).to(device)
 criterion = LossAutoencoder(lasso_lambda=lasso_lambda)

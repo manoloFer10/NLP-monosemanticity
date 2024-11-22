@@ -3,7 +3,7 @@ import torch.nn as nn
 import mlflow
 
 class Autoencoder(nn.Module):
-    def __init__(self, dim_activaciones: int, dim_rala: int, dataset_geometric_median, device):
+    def __init__(self, dim_activaciones: int, dim_rala: int, device):
         super().__init__()
 
         self.encoder = nn.Linear(dim_activaciones, dim_rala)
