@@ -5,6 +5,8 @@ import numpy as np
 from gpt import GPTLanguageModel
 from activations_params import (
     tokenizer,
+    dataset_name,
+    dataset_config,
     num_training_subsets,
     subsets_max_size,
     batch_size,
@@ -14,7 +16,7 @@ from activations_params import (
 )
 from text_loader import TextLoader
 from autoencoder import Autoencoder
-from gpt_utils import save_wikipedia
+from gpt_utils import save_dataset
 from gpt_params import transformer_experiment
 from autoencoder_params import autoencoder_experiment
 from activations import Activations
@@ -27,7 +29,12 @@ autoencoder.eval()
 
 mlflow.set_experiment("Activations")
 
-save_wikipedia(subsets_max_size=subsets_max_size, num_training_subsets=num_training_subsets)
+save_dataset(
+    dataset_name=dataset_name,
+    dataset_config=dataset_config,
+    subsets_max_size=subsets_max_size,
+    num_training_subsets=num_training_subsets,
+)
 
 activations = Activations(batch_size=batch_size, dim_rala=autoencoder.dim_rala)
 
@@ -45,7 +52,7 @@ with mlflow.start_run() as run:
         print(f"Subset {i+1}")
         print("____________________________________")
 
-        with open(f"data/wikitext-103-v1/train-{i}.txt", "r", encoding="utf-8") as f:
+        with open(f"data/{dataset_name}-{dataset_config}/train-{i}.txt", "r", encoding="utf-8") as f:
             subset = f.read()
 
         data = torch.tensor(tokenizer.encode(subset), dtype=torch.long)
@@ -59,7 +66,7 @@ with mlflow.start_run() as run:
             with torch.no_grad():
                 x_embedding = gpt.embed(x)
                 encoded, decoded = autoencoder(x_embedding)
-            
+
             contexts = []
             tokens = []
 
@@ -68,13 +75,11 @@ with mlflow.start_run() as run:
                 for token in context:
                     contexts.append(decoded_context)
                     tokens.append(tokenizer.decode(token))
-            
+
             contexts = np.array(contexts)
             tokens = np.array(tokens)
 
-            activations.update_batch_data(
-                encoded.view(-1, encoded.shape[2]), tokens, contexts
-            )
+            activations.update_batch_data(encoded.view(-1, encoded.shape[2]), tokens, contexts)
             print(f"Batch {batch+1}/{num_batches}")
 
         activations.save_to_files("./activations_data")

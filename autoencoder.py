@@ -20,7 +20,8 @@ class Autoencoder(nn.Module):
         # OJETE: la mediana geometrica debería ser sobre las activaciones de las neuronas. O sea, habría que precomputarlas
         # Muy costoso. Ver qué hacemos con esto.
 
-        self.pre_encoder_bias = self.decoder.bias
+        # NOTE: Hice esto para no tener que calcular la mediana geometrica. Lo ponemos como un parametreo entrenable y adios.
+        self.pre_encoder_bias = nn.Parameter(torch.zeros(dim_activaciones, device=device))
 
     def encode(self, x):
         x = x - self.pre_encoder_bias
@@ -63,9 +64,15 @@ class LossAutoencoder(nn.Module):
         super(LossAutoencoder, self).__init__()
         self.lasso_lambda = lasso_lambda
 
-    def lasso_loss(self, f):
-        l1 = torch.norm(f, p=1)
-        return self.lasso_lambda * l1
+    def lasso_loss(self, encoded):
+        # NOTE: Antes haciamos esto
+        # l1 = torch.norm(f, p=1)
+        
+        # Pero estaba mal porque computabamos la norma de todo el batch
+        # ahora computamos la norma de cada vector de activaciones y promediamos
+        # Como que antes fomentabamos espacidad en todo el batch (creo que no tiene sentido)
+        l1 = encoded.norm(p=1, dim=-1).mean()
+        return self.lasso_lambda * l1.mean()
 
     def forward(self, input_activaciones, encoded, decoded):
         mse = nn.MSELoss()

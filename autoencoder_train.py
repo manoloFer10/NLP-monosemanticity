@@ -1,12 +1,13 @@
 import os
-import mlflow
-import numpy as np
 import torch
+import mlflow
+import mlflow_env
+import numpy as np
 from gpt import GPTLanguageModel
-from autoencoder_utils import train_subset
-from gpt_utils import save_wikipedia
+from gpt_utils import save_dataset
 from autoencoder import Autoencoder
 from autoencoder import LossAutoencoder
+from autoencoder_utils import train_subset
 from gpt_params import transformer_experiment
 from autoencoder_params import (
     autoencoder_experiment,
@@ -15,6 +16,8 @@ from autoencoder_params import (
     batch_size,
     sparse_dimension_factor,
     lasso_lambda,
+    dataset_name,
+    dataset_config,
     num_training_subsets,
     subsets_max_size,
     tokenizer,
@@ -22,15 +25,9 @@ from autoencoder_params import (
     transformer_run_id,
 )
 
-# NOTE: Las siguientes operaciones tienen este orden porque
-# Tengo que setear la tracking uri antes de cargar el modelo
-# El load from mlflow modifica el extperiment
-# Despues tengo que volver a setearlo a Autoencoder
 
-import mlflow_env
 
 gpt = GPTLanguageModel.load_from_mlflow(transformer_experiment, transformer_run_id, device)
-
 mlflow.set_experiment(autoencoder_experiment)
 
 
@@ -43,7 +40,12 @@ autoencoder = Autoencoder(
 criterion = LossAutoencoder(lasso_lambda=lasso_lambda)
 optimizer = torch.optim.Adam(autoencoder.parameters(), lr=learning_rate)
 
-save_wikipedia(subsets_max_size=subsets_max_size, num_training_subsets=num_training_subsets)
+save_dataset(
+    dataset_name=dataset_name,
+    dataset_config=dataset_config,
+    subsets_max_size=subsets_max_size,
+    num_training_subsets=num_training_subsets,
+)
 
 with mlflow.start_run() as run:
     params = {
@@ -66,7 +68,7 @@ with mlflow.start_run() as run:
             print(f"Training subset {i+1}")
             print("____________________________________")
 
-            with open(f"data/wikitext-103-v1/train-{i}.txt", "r", encoding="utf-8") as f:
+            with open(f"data/{dataset_name}-{dataset_config}/train-{i}.txt", "r", encoding="utf-8") as f:
                 subset = f.read()
 
             current_step = train_subset(
