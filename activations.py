@@ -3,6 +3,7 @@ import torch
 import numpy as np
 import pandas as pd
 
+threshold = 1e-5 #threshold para el la frecuencia de activaciones
 
 class Neuron:
     def __init__(self, feature_id: int):

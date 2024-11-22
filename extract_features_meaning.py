@@ -19,15 +19,17 @@ reviewer = ChatGroq(
 def extract_text_from_feature(feature_csv: pd.DataFrame):
     feature_text=""
 
+    return feature_text
+
 def extract_meaning_from_feature(feature_csv: pd.DataFrame, reviewer = reviewer):
     feature_text= extract_text_from_feature(feature_csv)
 
     prompted_q = [
             (
                 "system",
-                "You are a helpful assistant that answers plant biology questions. Answer concisely in one paragraph.",
+                "You are a helpful assistant that extracts...",
             ),
-            ("human", pregunta),
+            ("human", feature_text),
         ]
 
 
