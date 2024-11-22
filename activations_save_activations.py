@@ -5,9 +5,9 @@ import numpy as np
 from gpt import GPTLanguageModel
 from activations_params import (
     tokenizer,
+    num_training_subsets,
     dataset_name,
     dataset_config,
-    num_training_subsets,
     subsets_max_size,
     batch_size,
     transformer_run_id,
@@ -30,10 +30,10 @@ autoencoder.eval()
 mlflow.set_experiment("Activations")
 
 save_dataset(
-    dataset_name=dataset_name,
-    dataset_config=dataset_config,
-    subsets_max_size=subsets_max_size,
+    subsets_max_size=subsets_max_size, 
     num_training_subsets=num_training_subsets,
+    dataset_name=dataset_name,
+    dataset_config=dataset_config
 )
 
 activations = Activations(batch_size=batch_size, dim_rala=autoencoder.dim_rala)
@@ -66,7 +66,7 @@ with mlflow.start_run() as run:
             with torch.no_grad():
                 x_embedding = gpt.embed(x)
                 encoded, decoded = autoencoder(x_embedding)
-
+            
             contexts = []
             tokens = []
 
@@ -75,13 +75,14 @@ with mlflow.start_run() as run:
                 for token in context:
                     contexts.append(decoded_context)
                     tokens.append(tokenizer.decode(token))
-
+            
             contexts = np.array(contexts)
             tokens = np.array(tokens)
 
             activations.update_batch_data(encoded.view(-1, encoded.shape[2]), tokens, contexts)
+
             print(f"Batch {batch+1}/{num_batches}")
 
-        activations.save_to_files("./activations_data")
+        activations.save_to_files("./activations_data", to_mlflow=True)
 
 mlflow.end_run()
