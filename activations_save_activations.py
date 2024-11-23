@@ -72,20 +72,12 @@ with mlflow.start_run() as run:
             contexts = np.array(tokenizer.batch_decode(x))
             tokens = np.array([tokenizer.batch_decode(x[i]) for i in range(len(x))]).flatten()
 
-            for context in x:
-                decoded_context = tokenizer.decode(context)
-                for token in context:
-                    contexts.append(decoded_context)
-                    tokens.append(tokenizer.decode(token))
-            
-            contexts = np.array(contexts)
-            tokens = np.array(tokens)
-
             activations.update_batch_data(
                 x_embedding.view(-1, gpt.embedding_dim), 
                 encoded.view(-1, autoencoder.dim_rala), 
                 tokens, 
-                contexts
+                contexts,
+                gpt.context_length
             )
 
             print(f"Batch {batch+1}/{num_batches}")

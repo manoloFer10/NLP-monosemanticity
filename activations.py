@@ -93,7 +93,7 @@ class Activations:
         feedforward_df.to_csv(feedforward_frequencies_file_name, index=False)
         
         for neuron in self.neurons:
-            neuron.save_to_csv(folder_path, to_mlflow)
+            neuron.save_to_csv(folder_path)
 
         if to_mlflow:
             os.system(f"zip -r {folder_path}.zip {folder_path}")
