@@ -48,17 +48,25 @@ class Neuron:
 
 
 class Activations:
-    def __init__(self, batch_size: int, dim_rala: int):
+    def __init__(self, batch_size: int, autoencoder_dim: int, dim_rala: int, activation_threshold=1e-5):
 
         self.batch_size = batch_size
         self.dim_rala = dim_rala
 
         self.neurons = [Neuron(i) for i in range(dim_rala)]
+        self.hidden_frequencies = np.zeros(dim_rala)
+        self.feedforward_activations = np.zeros(autoencoder_dim)
+        self.n_activations = 0
+        self.activation_threshold = activation_threshold
 
-    def update_batch_data(self, hidden_activations, batch_tokens, batch_contexts):
+
+    def update_batch_data(self, feedforward_activations, hidden_activations, batch_tokens, batch_contexts):
         # autoencoder_input tiene un formato batch_size x emb_size_post_transformers (32 x 128)
         # post autoencoder queda algo de batch_size x emb_size_dim_rala (32 x 1024)
 
+        self.n_activations += hidden_activations.shape[0]
+        self.feedforward_activations += (torch.abs(feedforward_activations) > self.activation_threshold).sum(dim=0).numpy()
+        self.hidden_frequencies += (torch.abs(hidden_activations) > self.activation_threshold).sum(dim=0).numpy()
         top10_batch_activations, top10_batch_indices = torch.topk(hidden_activations, 10, dim=0)
 
         for i in range(self.dim_rala):
@@ -71,10 +79,26 @@ class Activations:
                 new_neuron_activations, new_neuron_tokens, new_neuron_contexts
             )
 
+        
+
     def save_to_files(self, folder_path, to_mlflow=False):
         """
         For mlflow=True, it should be run in a mlflow run
         """
+
+        if self.n_activations == 0:
+            raise ValueError("No activations to save")
+
+        hidden_frequencies_file_name = os.path.join(folder_path, "hidden_frequencies.csv")
+        feedforward_frequencies_file_name = os.path.join(folder_path, "feedforward_frequencies.csv")
+        hidden_df = pd.DataFrame({"frequency": self.hidden_frequencies / self.n_activations})
+        feedforward_df = pd.DataFrame({"frequency": self.feedforward_activations / self.n_activations})
+        hidden_df.to_csv(hidden_frequencies_file_name, index=False)
+        feedforward_df.to_csv(feedforward_frequencies_file_name, index=False)
+
+        if to_mlflow:
+            mlflow.log_artifact(hidden_frequencies_file_name)
+            mlflow.log_artifact(feedforward_frequencies_file_name)
         
         for neuron in self.neurons:
             neuron.save_to_csv(folder_path, to_mlflow)

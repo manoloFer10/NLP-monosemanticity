@@ -36,14 +36,16 @@ save_dataset(
     dataset_config=dataset_config
 )
 
-activations = Activations(batch_size=batch_size, dim_rala=autoencoder.dim_rala)
+activations = Activations(batch_size=batch_size, dim_rala=autoencoder.dim_rala, autoencoder_dim=gpt.embedding_dim)
 
 with mlflow.start_run() as run:
     params = {
         "transformer_model_run_id": transformer_run_id,
-        "autoencoder_model_run_id": autoencoder_run_id,
+        "autoencoder_model_run_id": autoencoder_run_id,        
         "num_training_subsets": num_training_subsets,
         "subsets_max_size": subsets_max_size,
+        "sparsity_factor": gpt.embedding_dim // autoencoder.dim_rala,
+        "autoencoder_hidden_dim": autoencoder.dim_rala
     }
     mlflow.log_params(params)
 
@@ -79,7 +81,12 @@ with mlflow.start_run() as run:
             contexts = np.array(contexts)
             tokens = np.array(tokens)
 
-            activations.update_batch_data(encoded.view(-1, encoded.shape[2]), tokens, contexts)
+            activations.update_batch_data(
+                x_embedding.view(-1, gpt.embedding_dim), 
+                encoded.view(-1, autoencoder.dim_rala), 
+                tokens, 
+                contexts
+            )
 
             print(f"Batch {batch+1}/{num_batches}")
 
