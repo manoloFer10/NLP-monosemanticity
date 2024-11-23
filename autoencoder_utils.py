@@ -51,6 +51,7 @@ def train_subset(
     autoencoder,
     tokenizer,
     optimizer,
+    scheduler,
     criterion,
     subset,
     batch_size,
@@ -87,8 +88,15 @@ def train_subset(
             mlflow.log_metric("recon_loss_eval", f"{recon_losses['eval']:.4f}", step=current_step)
             mlflow.log_metric("norm_loss_eval", f"{norm_losses['eval']:.4f}", step=current_step)
             mlflow.log_metric("acts_eval", f"{acts['eval']:.4f}", step=current_step)
-            current_step += 1
 
+            prev_lr = optimizer.param_groups[0]['lr']
+            scheduler.step(losses['eval'])
+            new_lr = optimizer.param_groups[0]['lr']
+            if new_lr != prev_lr:
+                print(f"##### Learning rate changed: {prev_lr:.6f} -> {new_lr:.6f} #####")
+                
+            current_step += 1
+            
         x, _ = train_data_loader.get_batch()
         with torch.no_grad():
             # NOTE: Ahora agarramos batch size de activaciones, como hace jake
