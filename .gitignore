@@ -9,6 +9,6 @@ credentials.json
 mlflow_data/
 
 nlp_monosemanticity_env.yml
-activations_data/
+activations_data**/
 
 .env

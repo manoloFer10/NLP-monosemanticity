@@ -4,6 +4,7 @@ import mlflow_env
 import numpy as np
 from gpt import GPTLanguageModel
 from activations_params import (
+    activations_threshold,
     tokenizer,
     num_training_subsets,
     dataset_name,
@@ -36,15 +37,21 @@ save_dataset(
     dataset_config=dataset_config
 )
 
-activations = Activations(batch_size=batch_size, dim_rala=autoencoder.dim_rala, autoencoder_dim=gpt.embedding_dim)
+activations = Activations(
+    batch_size=batch_size, 
+    dim_rala=autoencoder.dim_rala, 
+    autoencoder_dim=gpt.embedding_dim,
+    activation_threshold=activations_threshold
+)
 
 with mlflow.start_run() as run:
+    sparsity_factor = autoencoder.dim_rala // gpt.embedding_dim
     params = {
         "transformer_model_run_id": transformer_run_id,
         "autoencoder_model_run_id": autoencoder_run_id,        
         "num_training_subsets": num_training_subsets,
         "subsets_max_size": subsets_max_size,
-        "sparsity_factor": gpt.embedding_dim // autoencoder.dim_rala,
+        "sparsity_factor": sparsity_factor,
         "autoencoder_hidden_dim": autoencoder.dim_rala
     }
     mlflow.log_params(params)

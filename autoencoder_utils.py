@@ -2,7 +2,7 @@ import time
 import torch
 import mlflow
 from text_loader import TextLoader
-
+from autoencoder_params import activations_threshold
 
 @torch.no_grad()
 def estimate_loss(
@@ -33,7 +33,7 @@ def estimate_loss(
 
             # HACK: forma rapida de ver como esta funcionando lasso
             # mejorar luego
-            act = (abs(encoded) > 0.1).sum(dim=-1).float().mean()
+            act = (abs(encoded) > activations_threshold).sum(dim=-1).float().mean()
             split_acts.append(act.item())
 
         losses[split] = sum(split_losses) / len(split_losses)

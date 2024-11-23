@@ -3,6 +3,7 @@ import torch
 import numpy as np
 import pandas as pd
 import mlflow
+import shutil
 
 
 class Neuron:
@@ -84,6 +85,16 @@ class Activations:
         """
         if self.n_activations == 0:
             raise ValueError("No activations to save")
+        
+        # Reset folder
+        if not os.path.exists(folder_path):
+            os.makedirs(folder_path)
+        else:
+            try:
+                shutil.rmtree(folder_path)
+            except FileNotFoundError:
+                print(f"The folder '{folder_path}' does not exist.")
+            os.makedirs(folder_path)
 
         hidden_frequencies_file_name = os.path.join(folder_path, "hidden_frequencies.csv")
         feedforward_frequencies_file_name = os.path.join(folder_path, "feedforward_frequencies.csv")
@@ -97,5 +108,5 @@ class Activations:
 
         if to_mlflow:
             os.system(f"zip -r {folder_path}.zip {folder_path}")
-            mlflow.log_artifact(f"{folder_path}.zip")
+            mlflow.log_artifact(local_path=f"{folder_path}.zip")
             os.system(f"rm {folder_path}.zip")

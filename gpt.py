@@ -203,6 +203,23 @@ class GPTLanguageModel(nn.Module):
             # append sampled index to the running sequence
             idx = torch.cat((idx, idx_next), dim=1)  # (B, T+1)
         return idx
+    
+    def biased_generate(self, idx, max_new_tokens, neuron_idx, activation, autoencoder):
+        if neuron_idx < 0 or neuron_idx >= autoencoder.dim_rala:
+            raise ValueError(f"Invalid neuron index: {neuron_idx}")
+
+        for _ in range(max_new_tokens):
+            idx_cond = idx[:, -self.context_length :]
+            x = self.embed(idx_cond)
+            encoded, _ = autoencoder(x)
+            encoded[:, :, neuron_idx] = activation
+            x = autoencoder.decode(encoded)
+            logits = self.unembed(x)
+            logits = logits[:, -1, :]
+            probs = F.softmax(logits, dim=-1)
+            idx_next = torch.multinomial(probs, num_samples=1)
+            idx = torch.cat((idx, idx_next), dim=1)
+        return idx
 
     def greedy_generate(self, idx, max_new_tokens):
         # idx is (B, T) array of indices in the current context
@@ -219,7 +236,7 @@ class GPTLanguageModel(nn.Module):
             idx_next = torch.argmax(probs, dim=-1).unsqueeze(1)
             # append sampled index to the running sequence
             idx = torch.cat((idx, idx_next), dim=1)  # (B, T+1)
-        return idx
+        return idx        
 
     def embed(self, idx):
         _, T = idx.shape

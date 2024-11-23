@@ -21,6 +21,7 @@ from autoencoder_gpt2_params import (
     dataset_config,
     dataset_name
 )
+from torch.optim.lr_scheduler import ReduceLROnPlateau
 
 import mlflow_env
 mlflow.set_experiment(autoencoder_experiment)
@@ -28,7 +29,6 @@ mlflow.set_experiment(autoencoder_experiment)
 gpt = GPT2Extended.from_pretrained("gpt2").to(device)
 
 mlflow.set_experiment(autoencoder_experiment)
-
 
 autoencoder = Autoencoder(
     dim_activaciones=gpt.embedding_dim,
@@ -38,6 +38,7 @@ autoencoder = Autoencoder(
 ).to(device)
 criterion = LossAutoencoder(lasso_lambda=lasso_lambda)
 optimizer = torch.optim.Adam(autoencoder.parameters(), lr=learning_rate)
+scheduler = ReduceLROnPlateau(optimizer, mode="min", threshold=0.001, factor=0.5, patience=5)
 
 save_dataset(
     dataset_name=dataset_name,
@@ -66,13 +67,26 @@ with mlflow.start_run() as run:
             print(f"Training subset {i+1}")
             print("____________________________________")
 
-            with open(f"data/{dataset_name}-{dataset_config}/train-{i}.txt", "r", encoding="utf-8") as f:
-                subset = f.read()
+            try:
+                with open(
+                    f"data/{dataset_name}-{dataset_config}/train-{i}.txt", "r", encoding="utf-8"
+                ) as f:
+                    subset = f.read()
+            except FileNotFoundError:
+                continue
 
             current_step = train_subset(
-                current_step, gpt, autoencoder, tokenizer, optimizer, criterion, subset, batch_size
+                current_step,
+                gpt,
+                autoencoder,
+                tokenizer,
+                optimizer,
+                scheduler,
+                criterion,
+                subset,
+                batch_size,
             )
 
-    mlflow.pytorch.log_model(autoencoder, "autoencoder")
+            mlflow.pytorch.log_model(autoencoder, "autoencoder")
 
 mlflow.end_run()
