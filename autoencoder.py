@@ -57,6 +57,14 @@ class Autoencoder(nn.Module):
         model = torch.load(local_model_path, map_location=device)
         model.device = device
         model.to(device)
+        run = mlflow.get_run(run_id)
+        print("\nAutoencoder loaded from MLflow:")
+        print("\nMetrics:")
+        for metric, value in run.data.metrics.items():
+            print(f"  {metric}: {value}")
+        print("\nParameters:")
+        for param, value in run.data.params.items():
+            print(f"  {param}: {value}")
         return model
 
 class LossAutoencoder(nn.Module):
