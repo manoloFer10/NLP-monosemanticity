@@ -12,10 +12,10 @@ num_epochs = 1
 batch_size = 64
 
 sparse_dimension_factor = 16
-lasso_lambda = 1e-3
+lasso_lambda = 1e-4
 
 subsets_max_size = 20
-num_training_subsets = 20
+num_training_subsets = 30
 tokenizer = get_tokenizer("gpt2")
 device = (
     "cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu"

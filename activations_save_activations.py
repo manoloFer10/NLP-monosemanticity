@@ -69,8 +69,8 @@ with mlflow.start_run() as run:
                 x_embedding = gpt.embed(x)
                 encoded, decoded = autoencoder(x_embedding)
             
-            contexts = []
-            tokens = []
+            contexts = np.array(tokenizer.batch_decode(x))
+            tokens = np.array([tokenizer.batch_decode(x[i]) for i in range(len(x))]).flatten()
 
             for context in x:
                 decoded_context = tokenizer.decode(context)
