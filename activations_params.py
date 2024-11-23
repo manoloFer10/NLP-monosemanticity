@@ -8,7 +8,7 @@ dataset_name="wikitext"
 dataset_config="wikitext-103-v1"
 num_training_subsets = 10
 subsets_max_size = 1
-batch_size = 64
+batch_size = 512
 
 tokenizer = get_tokenizer("gpt2")
 device = (

@@ -52,7 +52,7 @@ class Activations:
 
         self.neurons = [Neuron(i) for i in range(dim_rala)]
 
-    def update_batch_data(self, hidden_activations, batch_tokens, batch_contexts):
+    def update_batch_data(self, hidden_activations, batch_tokens, batch_contexts, context_length):
         # autoencoder_input tiene un formato batch_size x emb_size_post_transformers (32 x 128)
         # post autoencoder queda algo de batch_size x emb_size_dim_rala (32 x 1024)
 
@@ -62,7 +62,7 @@ class Activations:
 
             new_neuron_activations = top10_batch_activations[:, i].to("cpu")
             new_neuron_tokens = batch_tokens[top10_batch_indices[:, i].tolist()]
-            new_neuron_contexts = batch_contexts[top10_batch_indices[:, i].tolist()]
+            new_neuron_contexts = batch_contexts[(top10_batch_indices[:, i] // context_length).tolist()]
 
             self.neurons[i].update_neuron(
                 new_neuron_activations, new_neuron_tokens, new_neuron_contexts
@@ -72,11 +72,11 @@ class Activations:
         """
         For mlflow=True, it should be run in a mlflow run
         """
-        
+
         for neuron in self.neurons:
             neuron.save_to_csv(folder_path, to_mlflow)
-            
-        if to_mlflow:    
+
+        if to_mlflow:
             os.system(f"zip -r {folder_path}.zip {folder_path}")
             mlflow.log_artifact(f"{folder_path}.zip")
             os.system(f"rm {folder_path}.zip")

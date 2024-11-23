@@ -9,10 +9,10 @@ dataset_name="wikitext"
 dataset_config="wikitext-103-v1"
 learning_rate = 1e-4
 num_epochs = 1
-batch_size = 64
+batch_size = 128
 
-sparse_dimension_factor = 16
-lasso_lambda = 1e-4
+sparse_dimension_factor = 32
+lasso_lambda = 5e-4
 
 subsets_max_size = 20
 num_training_subsets = 20
