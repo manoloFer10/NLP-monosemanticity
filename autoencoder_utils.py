@@ -88,7 +88,7 @@ def train_subset(
             mlflow.log_metric("recon_loss_eval", f"{recon_losses['eval']:.4f}", step=current_step)
             mlflow.log_metric("norm_loss_eval", f"{norm_losses['eval']:.4f}", step=current_step)
             mlflow.log_metric("acts_eval", f"{acts['eval']:.4f}", step=current_step)
-            mlflow.log_metric("acts_eval_percentage", f"{acts['eval']/autoencoder.dim_rala:.4%}", step=current_step)
+            mlflow.log_metric("acts_eval_percentage", f"{100*acts['eval']/autoencoder.dim_rala:.4f}", step=current_step)
 
             prev_lr = optimizer.param_groups[0]['lr']
             scheduler.step(losses['eval'])
