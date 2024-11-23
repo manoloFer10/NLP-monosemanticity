@@ -9,7 +9,7 @@ dataset_config="wikitext-103-v1"
 num_training_subsets = 500
 subsets_max_size = 1
 batch_size = 2048
-activations_threshold = 1e-3
+activations_threshold = 1e-5
 window_size=20
 
 tokenizer = get_tokenizer("gpt2")

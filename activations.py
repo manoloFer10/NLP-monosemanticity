@@ -63,7 +63,7 @@ class Activations:
         # post autoencoder queda algo de batch_size x emb_size_dim_rala (32 x 1024)
 
         self.n_activations += hidden_activations.shape[0]
-        self.feedforward_activations += (torch.abs(feedforward_activations) > self.activation_threshold).sum(dim=0).numpy()
+        self.feedforward_activations += (feedforward_activations > 0).sum(dim=0).numpy()
         self.hidden_frequencies += (torch.abs(hidden_activations) > self.activation_threshold).sum(dim=0).numpy()
         top10_batch_activations, top10_batch_indices = torch.topk(hidden_activations, 10, dim=0)
 
