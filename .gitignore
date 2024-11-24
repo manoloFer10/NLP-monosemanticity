@@ -12,3 +12,4 @@ nlp_monosemanticity_env.yml
 activations_data**/
 
 .env
+*.csv
