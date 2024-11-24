@@ -2,7 +2,7 @@ import torch
 from gpt_utils import get_tokenizer
 
 transformer_run_id = "1631cdf63904427fb5833afa9372b625"
-autoencoder_run_id = "1ab8c069b70c474da0efa51bb993dae0"
+autoencoder_run_id = "474bd7133f1f45278e4279d5a617ab2d"
 
 dataset_name="wikitext"
 dataset_config="wikitext-103-v1"
