@@ -40,7 +40,7 @@ save_dataset(
 activations = Activations(
     batch_size=batch_size, 
     dim_rala=autoencoder.dim_rala, 
-    autoencoder_dim=gpt.embedding_dim,
+    embedding_size=gpt.embedding_dim,
     activation_threshold=activations_threshold
 )
 

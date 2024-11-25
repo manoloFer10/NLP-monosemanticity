@@ -33,8 +33,11 @@ class Neuron:
     def get_data(self):
         return self.activations, self.tokens, self.contexts
 
-    def save_to_csv(self, folder_path):
-        file_name = f"activations_feature_{self.feature_id}.csv"
+    def save_to_csv(self, folder_path, mlp=False):
+        if mlp:
+            file_name = f"activations_mlp_{self.feature_id}_mlp.csv"
+        else:
+            file_name = f"activations_feature_{self.feature_id}.csv"
         final_path = os.path.join(folder_path, file_name)
         data = {
             "Activacion": self.activations.detach().numpy(),
@@ -46,14 +49,16 @@ class Neuron:
 
 
 class Activations:
-    def __init__(self, batch_size: int, autoencoder_dim: int, dim_rala: int, activation_threshold=1e-5):
+    def __init__(self, batch_size: int, embedding_size: int, dim_rala: int, activation_threshold=1e-5):
 
         self.batch_size = batch_size
         self.dim_rala = dim_rala
+        self.embedding_size = embedding_size
 
         self.neurons = [Neuron(i) for i in range(dim_rala)]
+        self.neurons_mlp = [Neuron(i) for i in range(embedding_size)]
         self.hidden_frequencies = np.zeros(dim_rala)
-        self.feedforward_activations = np.zeros(autoencoder_dim)
+        self.feedforward_activations = np.zeros(embedding_size)
         self.n_activations = 0
         self.activation_threshold = activation_threshold
 
@@ -66,6 +71,7 @@ class Activations:
         self.feedforward_activations += (torch.abs(feedforward_activations) > self.activation_threshold).sum(dim=0).numpy()
         self.hidden_frequencies += (torch.abs(hidden_activations) > self.activation_threshold).sum(dim=0).numpy()
         top10_batch_activations, top10_batch_indices = torch.topk(hidden_activations, 10, dim=0)
+        top10_batch_activations_mlp, top10_batch_indices_mlp = torch.topk(feedforward_activations, 10, dim=0)
 
         for i in range(self.dim_rala):
 
@@ -76,7 +82,16 @@ class Activations:
             self.neurons[i].update_neuron(
                 new_neuron_activations, new_neuron_tokens, new_neuron_contexts
             )
+        
+        for i in range(self.embedding_size):
+                
+            new_neuron_activations = top10_batch_activations_mlp[:, i].to("cpu")
+            new_neuron_tokens = batch_tokens[top10_batch_indices_mlp[:, i].tolist()]
+            new_neuron_contexts = batch_contexts[(top10_batch_indices_mlp[:, i] // context_length).tolist()]
 
+            self.neurons_mlp[i].update_neuron(
+                new_neuron_activations, new_neuron_tokens, new_neuron_contexts
+            )
         
 
     def save_to_files(self, folder_path, to_mlflow=False):
@@ -105,6 +120,9 @@ class Activations:
         
         for neuron in self.neurons:
             neuron.save_to_csv(folder_path)
+        
+        for neuron in self.neurons_mlp:
+            neuron.save_to_csv(folder_path, mlp=True)
 
         if to_mlflow:
             os.system(f"zip -r {folder_path}.zip {folder_path}")
