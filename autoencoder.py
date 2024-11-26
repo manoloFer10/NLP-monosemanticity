@@ -7,7 +7,7 @@ class Autoencoder(nn.Module):
         super().__init__()
 
         self.encoder = nn.Linear(dim_activaciones, dim_rala)
-        self.decoder = nn.Linear(dim_rala, dim_activaciones)
+        self.decoder = nn.Linear(dim_rala, dim_activaciones, bias=False)
         self.relu = nn.ReLU()
     
         self.dim_activaciones = dim_activaciones
@@ -32,9 +32,7 @@ class Autoencoder(nn.Module):
 
     def decode(self, x):
         x = self.decoder(x)
-        x = self.relu(x)
         x = self.pre_encoder_bias + x
-
         return x
 
     def forward(self, x):
